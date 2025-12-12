@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, ShieldAlert, Key, Copy, Check, Save, ToggleLeft, ToggleRight, Trash2, Smartphone, Lock, Hash, Activity, Users, Timer, RefreshCw } from 'lucide-react';
+import { X, ShieldAlert, Key, Copy, Check, Save, ToggleLeft, ToggleRight, Trash2, Smartphone, Lock, Hash, Activity, Users, Timer, RefreshCw, Ban, UserCheck } from 'lucide-react';
 import { LicenseKey, GlobalSettings, AdminPanelProps } from '../types';
-import { getRealUserCount } from '../lib/firebase';
+import { getRealUserCount, saveGlobalSettings, generateKeysOnServer, subscribeToKeys, deleteAllKeysOnServer, deleteSingleKeyOnServer, subscribeToAllUsers, toggleUserBanStatus } from '../lib/firebase';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClearHistory }) => {
   const [password, setPassword] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'keys' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'keys' | 'settings'>('dashboard');
   
   // Key Generation State
   const [days, setDays] = useState(0);
@@ -17,6 +17,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
   
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [keysList, setKeysList] = useState<LicenseKey[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]); // New Users List
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Dashboard Stats (REAL DATA ONLY)
@@ -44,8 +45,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
   useEffect(() => {
     if (isUnlocked) {
-      loadKeys();
-      fetchRealStats(); 
+      // Subscribe to Realtime keys
+      const unsubscribeKeys = subscribeToKeys((keys) => {
+          const sortedList = keys.sort((a, b) => b.createdAt - a.createdAt);
+          setKeysList(sortedList);
+          const total = sortedList.length;
+          const redeemed = sortedList.filter(k => k.isUsed).length;
+          setStats(prev => ({...prev, totalKeys: total, redeemedKeys: redeemed}));
+      });
+
+      // Subscribe to Realtime Users
+      const unsubscribeUsers = subscribeToAllUsers((users) => {
+          const sortedUsers = users.sort((a, b) => new Date(b.lastLogin).getTime() - new Date(a.lastLogin).getTime());
+          setUsersList(sortedUsers);
+          setStats(prev => ({...prev, activeUsers: users.length}));
+      });
+      
+      // Load settings
       const saved = localStorage.getItem('xhunter_settings');
       if (saved) {
         try {
@@ -61,45 +77,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
           });
         } catch(e) {}
       }
+
+      return () => {
+          unsubscribeKeys();
+          unsubscribeUsers();
+      };
     }
-  }, [isUnlocked, activeTab]);
+  }, [isUnlocked]);
 
   const fetchRealStats = async () => {
       setLoadingStats(true);
-      const userCount = await getRealUserCount();
-      
-      const savedKeysStr = localStorage.getItem('xhunter_keys');
-      let total = 0;
-      let redeemed = 0;
-      
-      if (savedKeysStr) {
-          try {
-              const list = Object.values(JSON.parse(savedKeysStr)) as LicenseKey[];
-              total = list.length;
-              redeemed = list.filter(k => k.isUsed).length;
-          } catch(e) {}
-      }
-
-      setStats({
-          totalKeys: total,
-          redeemedKeys: redeemed,
-          activeUsers: userCount 
-      });
-      setLoadingStats(false);
-  };
-
-  const loadKeys = () => {
-    const savedKeysStr = localStorage.getItem('xhunter_keys');
-    if (savedKeysStr) {
-      try {
-        const parsed = JSON.parse(savedKeysStr);
-        const list = Object.values(parsed) as LicenseKey[];
-        const sortedList = list.sort((a, b) => b.createdAt - a.createdAt);
-        setKeysList(sortedList);
-      } catch (e) {
-        setKeysList([]);
-      }
-    }
+      // Data is mostly realtime now via subscriptions, but we keep this for manual refresh feel
+      setTimeout(() => setLoadingStats(false), 500);
   };
 
   if (!isOpen) return null;
@@ -130,9 +119,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
       return;
     }
 
-    const savedKeysStr = localStorage.getItem('xhunter_keys');
-    let savedKeys = savedKeysStr ? JSON.parse(savedKeysStr) : {};
-    const newKeys: string[] = [];
+    const newKeysList: any[] = [];
+    const newKeyStrings: string[] = [];
 
     for(let i=0; i<quantity; i++) {
       const newKeyString = generateRandomKey();
@@ -143,47 +131,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
         isUsed: false,
         createdAt: Date.now()
       };
-      savedKeys[newKeyString] = newKeyData;
-      newKeys.push(newKeyString);
+      newKeysList.push(newKeyData);
+      newKeyStrings.push(newKeyString);
     }
     
     try {
-      localStorage.setItem('xhunter_keys', JSON.stringify(savedKeys));
-      setGeneratedKeys(newKeys);
-      loadKeys();
-      fetchRealStats(); 
+      await generateKeysOnServer(newKeysList);
+      setGeneratedKeys(newKeyStrings);
     } catch (err) {
-      alert("Storage Error");
+      alert("Server Error: Could not generate keys");
     }
   };
 
-  const handleDeleteAllKeys = () => {
-    if(window.confirm("DELETE ALL KEYS?")) {
-      localStorage.removeItem('xhunter_keys');
-      setKeysList([]);
+  const handleDeleteAllKeys = async () => {
+    if(window.confirm("DELETE ALL KEYS FROM SERVER?")) {
+      await deleteAllKeysOnServer();
       setGeneratedKeys([]);
-      loadKeys();
-      fetchRealStats();
     }
   };
 
-  const handleDeleteSingleKey = (keyToDelete: string) => {
+  const handleDeleteSingleKey = async (keyToDelete: string) => {
     if(!window.confirm(`DELETE ${keyToDelete}?`)) return;
-    
-    // Immediate UI update
-    const newList = keysList.filter(k => k.key !== keyToDelete);
-    setKeysList(newList);
-
-    const savedKeysStr = localStorage.getItem('xhunter_keys');
-    if (savedKeysStr) {
-        const savedKeys = JSON.parse(savedKeysStr);
-        delete savedKeys[keyToDelete];
-        localStorage.setItem('xhunter_keys', JSON.stringify(savedKeys));
-    }
-    fetchRealStats();
+    await deleteSingleKeyOnServer(keyToDelete);
   };
 
-  const handleSaveSettings = () => {
+  const handleToggleBan = async (user: any) => {
+      if(window.confirm(`${user.isBanned ? 'UNBAN' : 'BAN'} ${user.firstName}?`)) {
+          await toggleUserBanStatus(user.id, user.isBanned);
+      }
+  }
+
+  const handleSaveSettings = async () => {
     setSettingsError('');
     if (settings.strictMode) {
         if (!settings.botToken || !settings.channelChatId) {
@@ -192,11 +170,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
         }
     }
     try {
+      await saveGlobalSettings(settings);
       localStorage.setItem('xhunter_settings', JSON.stringify(settings));
       setSavedSettings(true);
       setTimeout(() => setSavedSettings(false), 2000);
     } catch (e) {
-      alert('Error saving settings');
+      alert('Error saving settings to server');
     }
   };
 
@@ -264,8 +243,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
         ) : (
           <div className="space-y-4 pb-20 max-w-md mx-auto">
             {/* Tabs */}
-            <div className="flex bg-[#0a0a0a] p-1 rounded-lg border border-white/10 shrink-0">
+            <div className="flex bg-[#0a0a0a] p-1 rounded-lg border border-white/10 shrink-0 gap-1">
                <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'dashboard' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>DASHBOARD</button>
+               <button onClick={() => setActiveTab('users')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'users' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>USERS</button>
                <button onClick={() => setActiveTab('keys')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'keys' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>KEYS</button>
                <button onClick={() => setActiveTab('settings')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'settings' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>SETTINGS</button>
             </div>
@@ -282,7 +262,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                             <Activity className="w-3.5 h-3.5 text-green-500" />
                             <span className="text-[10px] font-bold uppercase text-gray-400">Database Status</span>
                         </div>
-                        <div className="text-lg font-bold text-green-400 tracking-wider">CONNECTED</div>
+                        <div className="text-lg font-bold text-green-400 tracking-wider">ONLINE (DB)</div>
                     </div>
                     
                     <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-3 flex flex-col justify-between">
@@ -300,15 +280,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                             <div className="text-[9px] text-gray-500 uppercase font-bold">Generated Keys</div>
                         </div>
                     </div>
-                    
-                    <div className="col-span-2 bg-[#0f0f0f] border border-white/10 rounded-xl p-3 flex items-center justify-between">
-                         <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 uppercase font-bold">Active Licenses</span>
-                            <span className="text-base font-bold text-red-500">{stats.redeemedKeys} Keys Redeemed</span>
-                         </div>
-                         <div className="w-8 h-8 rounded-full bg-red-900/20 flex items-center justify-center border border-red-500/20">
-                             <Lock className="w-3.5 h-3.5 text-red-500" />
-                         </div>
+                </div>
+            )}
+
+            {activeTab === 'users' && (
+                <div className="space-y-4 animate-fade-in-up">
+                    <div className="bg-[#0f0f0f] p-3 rounded-xl border border-white/5 shadow-lg flex flex-col h-[450px]">
+                        <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+                             <div className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-2">
+                                <Users className="w-3 h-3"/> Active Users ({usersList.length})
+                             </div>
+                        </div>
+                        <div className="overflow-y-auto space-y-2 custom-scrollbar flex-1 pr-1">
+                            {usersList.length > 0 ? (
+                                usersList.map((user) => (
+                                    <div key={user.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all ${user.isBanned ? 'bg-red-950/20 border-red-500/30' : 'bg-black border-white/5'}`}>
+                                        <div className="flex items-center gap-3">
+                                            {/* Avatar */}
+                                            <div className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 overflow-hidden shrink-0">
+                                                {user.photoUrl ? (
+                                                    <img src={user.photoUrl} alt="U" className="w-full h-full object-cover"/>
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                                                        <Users className="w-4 h-4"/>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {/* Info */}
+                                            <div className="flex flex-col">
+                                                <span className={`text-[10px] font-bold ${user.isBanned ? 'text-red-400' : 'text-white'}`}>
+                                                    {user.firstName} {user.isBanned && '(BANNED)'}
+                                                </span>
+                                                <span className="text-[8px] text-gray-500 font-mono">ID: {user.id}</span>
+                                            </div>
+                                        </div>
+                                        {/* Actions */}
+                                        <button 
+                                            onClick={() => handleToggleBan(user)}
+                                            className={`p-1.5 rounded-md border transition-all active:scale-95 ${
+                                                user.isBanned 
+                                                ? 'bg-green-900/30 border-green-500/30 text-green-400 hover:bg-green-900/50' 
+                                                : 'bg-red-900/30 border-red-500/30 text-red-400 hover:bg-red-900/50'
+                                            }`}
+                                        >
+                                            {user.isBanned ? <UserCheck className="w-4 h-4"/> : <Ban className="w-4 h-4"/>}
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center text-[10px] text-gray-600 mt-10">NO USERS FOUND</div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -317,7 +339,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                <div className="space-y-4 animate-fade-in-up">
                  <div className="bg-[#0f0f0f] p-3 rounded-xl border border-red-900/20 shadow-lg">
                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/5 text-red-400 text-xs font-bold uppercase">
-                      <Key className="w-3 h-3"/> Create Licenses
+                      <Key className="w-3 h-3"/> Create Server Licenses
                    </div>
                    
                    <div className="grid grid-cols-3 gap-2 mb-3">
@@ -358,7 +380,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                       onClick={handleGenerateKeys}
                       className="w-full bg-red-700 hover:bg-red-600 text-white text-[10px] font-bold py-3 rounded-lg tracking-widest shadow-lg active:scale-95 transition-all"
                    >
-                     GENERATE KEYS
+                     GENERATE ON SERVER
                    </button>
                  </div>
 
@@ -413,7 +435,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                             </div>
                           </div>
                         ))}
-                        {keysList.length === 0 && <div className="text-center text-gray-600 text-[10px] mt-10">NO KEYS FOUND</div>}
+                        {keysList.length === 0 && <div className="text-center text-gray-600 text-[10px] mt-10">NO KEYS FOUND ON SERVER</div>}
                     </div>
                  </div>
                </div>
@@ -500,7 +522,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold py-3 rounded-lg tracking-widest mt-1 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
                      >
                        {savedSettings ? <Check className="w-3.5 h-3.5"/> : <Save className="w-3.5 h-3.5"/>}
-                       {savedSettings ? 'SETTINGS SAVED' : 'SAVE CONFIGURATION'}
+                       {savedSettings ? 'SYNCED TO SERVER' : 'SAVE TO SERVER'}
                      </button>
                    </div>
                  </div>

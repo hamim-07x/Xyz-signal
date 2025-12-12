@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Unlock, Loader2, Send } from 'lucide-react';
+import { redeemKeyOnServer } from '../lib/firebase';
 
 interface LockedViewProps {
   telegramId: number;
@@ -19,49 +20,29 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
     setLoading(true);
     setError('');
 
-    setTimeout(() => {
-      try {
+    // Validate key against Firebase Server
+    try {
         const keyString = inputKey.trim();
-        const savedKeysStr = localStorage.getItem('xhunter_keys');
-        const savedKeys = savedKeysStr ? JSON.parse(savedKeysStr) : {};
-        const keyData = savedKeys[keyString];
+        const result = await redeemKeyOnServer(keyString, telegramId);
 
-        if (!keyData) {
-          setError('ACCESS DENIED: INVALID KEY');
-          setLoading(false);
-          return;
+        if (result.success && result.duration) {
+             const now = Date.now();
+             const newExpiry = now + result.duration;
+             
+             // Save local expiry for offline access optimization
+             localStorage.setItem(`xhunter_license_${telegramId}`, newExpiry.toString());
+             
+             setLoading(false);
+             onSuccess(newExpiry);
+        } else {
+             setError(result.message || 'ACCESS DENIED');
+             setLoading(false);
         }
-
-        if (keyData.isUsed) {
-          setError('ACCESS DENIED: KEY REDEEMED');
-          setLoading(false);
-          return;
-        }
-
-        const now = Date.now();
-        const duration = keyData.durationMs; 
-        const newExpiry = now + duration;
-
-        // Update Key Status
-        keyData.isUsed = true;
-        keyData.usedBy = telegramId;
-        keyData.activatedAt = now; // SAVE ACTIVATION TIME
-        savedKeys[keyString] = keyData;
-        localStorage.setItem('xhunter_keys', JSON.stringify(savedKeys));
-
-        // Save License to Local User
-        localStorage.setItem(`xhunter_license_${telegramId}`, newExpiry.toString());
-
-        // Notify Parent App Component Immediately
-        setLoading(false);
-        onSuccess(newExpiry);
-
-      } catch (err) {
+    } catch (err) {
         console.error(err);
-        setError('SYSTEM CRITICAL ERROR');
+        setError('CONNECTION ERROR');
         setLoading(false);
-      }
-    }, 800); // Cinematic delay
+    }
   };
 
   const handleContact = () => {
@@ -132,7 +113,7 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
             {loading ? (
                 <>
                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                   <span>DECRYPTING...</span>
+                   <span>VALIDATING...</span>
                 </>
             ) : (
                 <>

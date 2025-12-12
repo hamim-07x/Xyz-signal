@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, get, update, child } from "firebase/database";
+import { getDatabase, ref, set, get, update, child, onValue, push } from "firebase/database";
 
 // REAL CONFIG PROVIDED BY USER
 const firebaseConfig = {
@@ -24,36 +24,33 @@ try {
     console.error("Firebase Initialization Error:", e);
 }
 
+// --- USER MANAGEMENT ---
 export const saveUserToFirebase = async (user: any) => {
     if (!db || !user) return;
-    
-    // Don't save default Guest ID if you want only real TG users
     if (user.id === 1001 && user.first_name === "WEB_USER") return;
 
     try {
         const userRef = ref(db, 'users/' + user.id);
         const snapshot = await get(userRef);
-        
         const timestamp = new Date().toISOString();
 
+        const userData = {
+            firstName: user.first_name || 'Unknown',
+            username: user.username || 'No Username',
+            language: user.language_code || 'en',
+            photoUrl: user.photo_url || '', // Save Photo URL
+            lastLogin: timestamp
+        };
+
         if (snapshot.exists()) {
-            // Update existing user
-            await update(userRef, {
-                lastLogin: timestamp,
-                firstName: user.first_name || 'Unknown',
-                username: user.username || 'No Username',
-                language: user.language_code || 'en'
-            });
+            await update(userRef, userData);
         } else {
-            // Create new user
             await set(userRef, {
                 id: user.id,
-                firstName: user.first_name || 'Unknown',
-                username: user.username || 'No Username',
-                language: user.language_code || 'en',
+                ...userData,
                 firstLogin: timestamp,
-                lastLogin: timestamp,
                 platform: 'Telegram Mini App',
+                isBanned: false, // Default status
                 status: 'Active'
             });
         }
@@ -77,5 +74,140 @@ export const getRealUserCount = async (): Promise<number> => {
         return 0;
     }
 };
+
+// --- ADMIN USER MANAGEMENT (NEW) ---
+export const subscribeToAllUsers = (callback: (users: any[]) => void) => {
+    if (!db) return () => {};
+    const usersRef = ref(db, 'users');
+    const unsubscribe = onValue(usersRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const usersObj = snapshot.val();
+            const usersArray = Object.values(usersObj);
+            callback(usersArray);
+        } else {
+            callback([]);
+        }
+    });
+    return unsubscribe;
+};
+
+export const toggleUserBanStatus = async (userId: number, currentStatus: boolean) => {
+    if (!db) return;
+    const userRef = ref(db, `users/${userId}`);
+    try {
+        await update(userRef, {
+            isBanned: !currentStatus,
+            status: !currentStatus ? 'Banned' : 'Active'
+        });
+    } catch (e) {
+        console.error("Error toggling ban:", e);
+    }
+};
+
+export const listenToUserBanStatus = (userId: number, callback: (isBanned: boolean) => void) => {
+    if (!db) return () => {};
+    const userRef = ref(db, `users/${userId}/isBanned`);
+    const unsubscribe = onValue(userRef, (snapshot) => {
+        const isBanned = snapshot.exists() ? snapshot.val() : false;
+        callback(isBanned);
+    });
+    return unsubscribe;
+};
+
+// --- GLOBAL SETTINGS MANAGEMENT (SYNC FOR EVERYONE) ---
+export const saveGlobalSettings = async (settings: any) => {
+    if (!db) return;
+    try {
+        await set(ref(db, 'settings'), settings);
+    } catch (e) {
+        console.error("Error saving settings:", e);
+        throw e;
+    }
+};
+
+export const subscribeToSettings = (callback: (settings: any) => void) => {
+    if (!db) return () => {};
+    const settingsRef = ref(db, 'settings');
+    const unsubscribe = onValue(settingsRef, (snapshot) => {
+        if (snapshot.exists()) {
+            callback(snapshot.val());
+        } else {
+            // Default settings if none exist
+            callback({
+                appName: 'X-HUNTER',
+                channelLink: '',
+                contactLink: '',
+                strictMode: false
+            });
+        }
+    });
+    return unsubscribe; // Return unsubscribe function
+};
+
+// --- KEY MANAGEMENT (SERVER SIDE) ---
+export const generateKeysOnServer = async (keys: any[]) => {
+    if (!db) return;
+    const updates: any = {};
+    keys.forEach(key => {
+        updates['keys/' + key.key] = key;
+    });
+    await update(ref(db), updates);
+};
+
+export const redeemKeyOnServer = async (keyString: string, userId: number): Promise<{success: boolean, duration?: number, message: string}> => {
+    if (!db) return { success: false, message: "Server Error" };
+    
+    const keyRef = ref(db, `keys/${keyString}`);
+    
+    try {
+        const snapshot = await get(keyRef);
+        if (!snapshot.exists()) {
+            return { success: false, message: "INVALID KEY" };
+        }
+
+        const keyData = snapshot.val();
+        if (keyData.isUsed) {
+            return { success: false, message: "KEY ALREADY USED" };
+        }
+
+        // Mark as used
+        const now = Date.now();
+        await update(keyRef, {
+            isUsed: true,
+            usedBy: userId,
+            activatedAt: now
+        });
+
+        return { success: true, duration: keyData.durationMs, message: "SUCCESS" };
+    } catch (e) {
+        console.error(e);
+        return { success: false, message: "CONNECTION ERROR" };
+    }
+};
+
+export const subscribeToKeys = (callback: (keys: any[]) => void) => {
+    if (!db) return () => {};
+    const keysRef = ref(db, 'keys');
+    const unsubscribe = onValue(keysRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const keysObj = snapshot.val();
+            const keysArray = Object.values(keysObj);
+            callback(keysArray);
+        } else {
+            callback([]);
+        }
+    });
+    return unsubscribe;
+};
+
+export const deleteAllKeysOnServer = async () => {
+    if(!db) return;
+    await set(ref(db, 'keys'), null);
+}
+
+export const deleteSingleKeyOnServer = async (keyToDelete: string) => {
+    if(!db) return;
+    await set(ref(db, `keys/${keyToDelete}`), null);
+}
 
 export { db };

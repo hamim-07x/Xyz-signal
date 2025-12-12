@@ -7,9 +7,9 @@ import { LockedView } from './components/LockedView';
 import { AdminPanel } from './components/AdminPanel';
 import { LicenseTimer } from './components/LicenseTimer';
 import { HackSimulation } from './components/HackSimulation';
-import { Wifi, Power, User, Trash2, Clock } from 'lucide-react';
+import { Wifi, Power, User, Trash2, Clock, Ban } from 'lucide-react';
 import { PredictionResult, HistoryItem, TelegramUser, GlobalSettings } from './types';
-import { saveUserToFirebase } from './lib/firebase';
+import { saveUserToFirebase, subscribeToSettings, listenToUserBanStatus } from './lib/firebase';
 import { SupportProfile } from './components/SupportProfile';
 
 // --- SCRAMBLE TEXT COMPONENT ---
@@ -49,6 +49,7 @@ function App() {
   const [licenseExpiry, setLicenseExpiry] = useState(0);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [ping, setPing] = useState(24);
+  const [isBanned, setIsBanned] = useState(false); // New state for ban status
   
   // Game Logic
   const [timeLeft, setTimeLeft] = useState(0);
@@ -66,20 +67,17 @@ function App() {
 
   // Initialization
   useEffect(() => {
-    // Check URL for Secret Admin Command
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('cmd') === 'admin') {
         setIsAdminOpen(true);
     }
 
-    const savedSettings = localStorage.getItem('xhunter_settings');
-    if (savedSettings) {
-      try { 
-        const parsed = JSON.parse(savedSettings);
-        setAppSettings(parsed); 
-        if(parsed.appName) document.title = parsed.appName;
-      } catch (e) {}
-    }
+    const unsubscribe = subscribeToSettings((settings) => {
+        if (settings) {
+            setAppSettings(settings);
+            if(settings.appName) document.title = settings.appName;
+        }
+    });
 
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
@@ -102,7 +100,19 @@ function App() {
        setTelegramUser({ id: guestId, first_name: "WEB_USER" });
        checkLocalLicense(guestId);
     }
+
+    return () => unsubscribe();
   }, []);
+
+  // Listen for Ban Status
+  useEffect(() => {
+    if (telegramUser?.id) {
+        const unsubscribeBan = listenToUserBanStatus(telegramUser.id, (status) => {
+            setIsBanned(status);
+        });
+        return () => unsubscribeBan();
+    }
+  }, [telegramUser]);
 
   // Ping Sim
   useEffect(() => {
@@ -126,29 +136,10 @@ function App() {
     }
   };
 
-  // Sync Settings
-  useEffect(() => {
-    const interval = setInterval(() => {
-       const savedSettings = localStorage.getItem('xhunter_settings');
-       if (savedSettings) {
-         try {
-           const parsed = JSON.parse(savedSettings);
-           if (JSON.stringify(parsed) !== JSON.stringify(appSettings)) {
-             setAppSettings(parsed);
-           }
-         } catch(e) {}
-       }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [appSettings]);
-
   // Wingo Logic & Live Clock
   useEffect(() => {
     const updateGameData = () => {
       const now = new Date();
-
-      // --- CLOCK UPDATE (Bangladesh Time UTC+6) ---
-      // We keep the visual clock in BD time as per user preference
       const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
       const dhakaTime = new Date(utcTime + (3600000 * 6));
       
@@ -157,25 +148,15 @@ function App() {
       const s = String(dhakaTime.getSeconds()).padStart(2, '0');
       setFormattedTime(`${h}:${m}:${s}`);
 
-      // --- PERIOD UPDATE (UTC Logic) ---
-      // Standard Wingo games usually use UTC time for the period number.
-      // 9:24 BD Time = 03:24 UTC.
-      // 3 * 60 + 24 = 204. Period is 204 + 1 = 205.
-      // Format: YYYYMMDD + 10001 + Sequence
-      
       const utcYear = now.getUTCFullYear();
       const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
       const utcDay = String(now.getUTCDate()).padStart(2, '0');
-      
       const utcHours = now.getUTCHours();
       const utcMinutes = now.getUTCMinutes();
       const utcSeconds = now.getUTCSeconds();
       
       const totalMinutes = (utcHours * 60) + utcMinutes;
-      // Add 1 because the period starts at 1, not 0
       const periodSequence = String(totalMinutes + 1).padStart(4, '0');
-      
-      // Constructing the ID based on user request: 20251212 10001 0205
       const newPeriod = `${utcYear}${utcMonth}${utcDay}10001${periodSequence}`;
       
       if (newPeriod !== period) {
@@ -234,6 +215,23 @@ function App() {
 
   if (showIntro) {
     return <IntroAnimation appName={appSettings.appName} onComplete={handleIntroComplete} />;
+  }
+
+  // --- BANNED VIEW ---
+  if (isBanned) {
+      return (
+          <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-6 text-center">
+              <div className="absolute inset-0 bg-red-900/10"></div>
+              <div className="relative border-2 border-red-600 p-8 rounded-2xl bg-black shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-pulse">
+                  <Ban className="w-16 h-16 text-red-600 mx-auto mb-4" />
+                  <h1 className="text-3xl font-bold font-orbitron text-red-500 tracking-widest mb-2">ACCESS DENIED</h1>
+                  <p className="text-sm font-mono text-red-400 tracking-wider">USER_ID: {telegramUser?.id}</p>
+                  <div className="mt-6 border-t border-red-900/50 pt-4">
+                      <p className="text-[10px] text-gray-500">YOUR ACCOUNT HAS BEEN TERMINATED BY ADMINISTRATOR</p>
+                  </div>
+              </div>
+          </div>
+      );
   }
 
   const displayName = getDisplayName();
