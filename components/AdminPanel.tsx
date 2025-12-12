@@ -234,19 +234,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
         </div>
         <button 
           onClick={onClose} 
-          className="p-2 bg-red-950/50 rounded-lg text-red-500 hover:bg-red-900 hover:text-white border border-red-900/50 active:scale-95 transition-all z-50"
+          className="p-1.5 bg-red-950/50 rounded-lg text-red-500 hover:bg-red-900 hover:text-white border border-red-900/50 active:scale-95 transition-all z-50"
         >
-          <X className="w-6 h-6" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 relative custom-scrollbar">
         {!isUnlocked ? (
             <div className="h-full flex flex-col items-center justify-center -mt-20">
-                <div className="w-20 h-20 bg-red-900/10 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(220,38,38,0.2)]">
-                  <Lock className="w-8 h-8 text-red-500" />
+                <div className="w-16 h-16 bg-red-900/10 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(220,38,38,0.2)]">
+                  <Lock className="w-6 h-6 text-red-500" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-6 tracking-widest font-orbitron">SECURE LOGIN</h2>
+                <h2 className="text-lg font-bold text-white mb-6 tracking-widest font-orbitron">SECURE LOGIN</h2>
                 <form onSubmit={handleLogin} className="w-full max-w-[250px] space-y-4">
                   <input
                     type="password"
@@ -254,60 +254,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="PIN CODE"
-                    className="w-full bg-black border border-red-800 rounded-xl p-3 text-center text-red-500 text-lg focus:outline-none focus:border-red-500 placeholder-red-900/30 tracking-[0.5em] shadow-inner"
+                    className="w-full bg-black border border-red-800 rounded-xl p-2.5 text-center text-red-500 text-lg focus:outline-none focus:border-red-500 placeholder-red-900/30 tracking-[0.5em] shadow-inner"
                   />
-                  <button type="submit" className="w-full bg-gradient-to-r from-red-800 to-red-600 text-white font-bold py-3 rounded-xl tracking-widest shadow-lg active:scale-95 border border-red-500/50">
+                  <button type="submit" className="w-full bg-gradient-to-r from-red-800 to-red-600 text-white font-bold py-2.5 rounded-xl tracking-widest shadow-lg active:scale-95 border border-red-500/50 text-sm">
                     UNLOCK
                   </button>
                 </form>
             </div>
         ) : (
-          <div className="space-y-5 pb-20 max-w-md mx-auto">
+          <div className="space-y-4 pb-20 max-w-md mx-auto">
             {/* Tabs */}
             <div className="flex bg-[#0a0a0a] p-1 rounded-lg border border-white/10 shrink-0">
-               <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'dashboard' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>DASHBOARD</button>
-               <button onClick={() => setActiveTab('keys')} className={`flex-1 py-2 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'keys' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>KEYS</button>
-               <button onClick={() => setActiveTab('settings')} className={`flex-1 py-2 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'settings' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>SETTINGS</button>
+               <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'dashboard' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>DASHBOARD</button>
+               <button onClick={() => setActiveTab('keys')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'keys' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>KEYS</button>
+               <button onClick={() => setActiveTab('settings')} className={`flex-1 py-1.5 text-[10px] font-bold tracking-wider rounded-md transition-all ${activeTab === 'settings' ? 'bg-red-600 text-white' : 'text-gray-500'}`}>SETTINGS</button>
             </div>
 
             {activeTab === 'dashboard' && (
                 <div className="grid grid-cols-2 gap-3 animate-fade-in-up">
-                    <div className="col-span-2 bg-[#0f0f0f] border border-white/10 rounded-xl p-4 shadow-lg relative overflow-hidden">
+                    <div className="col-span-2 bg-[#0f0f0f] border border-white/10 rounded-xl p-3 shadow-lg relative overflow-hidden">
                         <div className="absolute top-2 right-2">
                              <button onClick={fetchRealStats} disabled={loadingStats} className="p-1 rounded bg-white/5 hover:bg-white/10">
                                  <RefreshCw className={`w-3 h-3 text-gray-400 ${loadingStats ? 'animate-spin' : ''}`}/>
                              </button>
                         </div>
                         <div className="flex items-center gap-2 mb-2">
-                            <Activity className="w-4 h-4 text-green-500" />
+                            <Activity className="w-3.5 h-3.5 text-green-500" />
                             <span className="text-[10px] font-bold uppercase text-gray-400">Database Status</span>
                         </div>
-                        <div className="text-xl font-bold text-green-400 tracking-wider">CONNECTED</div>
+                        <div className="text-lg font-bold text-green-400 tracking-wider">CONNECTED</div>
                     </div>
                     
-                    <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-4 flex flex-col justify-between">
-                        <Users className="w-5 h-5 text-blue-500 mb-2" />
+                    <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-3 flex flex-col justify-between">
+                        <Users className="w-4 h-4 text-blue-500 mb-2" />
                         <div>
-                            <div className="text-2xl font-bold text-white">{stats.activeUsers}</div>
+                            <div className="text-xl font-bold text-white">{stats.activeUsers}</div>
                             <div className="text-[9px] text-gray-500 uppercase font-bold">Total Users</div>
                         </div>
                     </div>
 
-                    <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-4 flex flex-col justify-between">
-                        <Key className="w-5 h-5 text-yellow-500 mb-2" />
+                    <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-3 flex flex-col justify-between">
+                        <Key className="w-4 h-4 text-yellow-500 mb-2" />
                         <div>
-                            <div className="text-2xl font-bold text-white">{stats.totalKeys}</div>
+                            <div className="text-xl font-bold text-white">{stats.totalKeys}</div>
                             <div className="text-[9px] text-gray-500 uppercase font-bold">Generated Keys</div>
                         </div>
                     </div>
                     
-                    <div className="col-span-2 bg-[#0f0f0f] border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                    <div className="col-span-2 bg-[#0f0f0f] border border-white/10 rounded-xl p-3 flex items-center justify-between">
                          <div className="flex flex-col">
                             <span className="text-[9px] text-gray-500 uppercase font-bold">Active Licenses</span>
-                            <span className="text-lg font-bold text-red-500">{stats.redeemedKeys} Keys Redeemed</span>
+                            <span className="text-base font-bold text-red-500">{stats.redeemedKeys} Keys Redeemed</span>
                          </div>
-                         <div className="w-10 h-10 rounded-full bg-red-900/20 flex items-center justify-center border border-red-500/20">
-                             <Lock className="w-4 h-4 text-red-500" />
+                         <div className="w-8 h-8 rounded-full bg-red-900/20 flex items-center justify-center border border-red-500/20">
+                             <Lock className="w-3.5 h-3.5 text-red-500" />
                          </div>
                     </div>
                 </div>
@@ -315,15 +315,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
             {activeTab === 'keys' && (
                <div className="space-y-4 animate-fade-in-up">
-                 <div className="bg-[#0f0f0f] p-4 rounded-xl border border-red-900/20 shadow-lg">
-                   <div className="flex items-center gap-2 mb-4 pb-2 border-b border-white/5 text-red-400 text-xs font-bold uppercase">
+                 <div className="bg-[#0f0f0f] p-3 rounded-xl border border-red-900/20 shadow-lg">
+                   <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/5 text-red-400 text-xs font-bold uppercase">
                       <Key className="w-3 h-3"/> Create Licenses
                    </div>
                    
-                   <div className="grid grid-cols-3 gap-3 mb-4">
+                   <div className="grid grid-cols-3 gap-2 mb-3">
                       {['Days', 'Hours', 'Mins'].map((label, idx) => (
                           <div key={label} className="relative">
-                              <span className="text-[9px] text-gray-500 block mb-1.5 uppercase text-center font-bold tracking-wide">{label}</span>
+                              <span className="text-[9px] text-gray-500 block mb-1 uppercase text-center font-bold tracking-wide">{label}</span>
                               <div className="relative">
                                 <select 
                                     value={idx === 0 ? days : idx === 1 ? hours : minutes} 
@@ -333,7 +333,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                                         else if(idx === 1) setHours(v);
                                         else setMinutes(v);
                                     }} 
-                                    className="w-full bg-black border border-gray-700 rounded-lg p-2 text-white text-center text-xs appearance-none focus:border-red-500"
+                                    className="w-full bg-black border border-gray-700 rounded-lg p-1.5 text-white text-center text-[10px] appearance-none focus:border-red-500"
                                 >
                                     {renderOptions(idx === 0 ? 30 : idx === 1 ? 24 : 60)}
                                 </select>
@@ -343,12 +343,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                       ))}
                    </div>
                    
-                   <div className="mb-4">
-                       <span className="text-[9px] text-gray-500 block mb-1.5 uppercase font-bold text-center">Quantity</span>
+                   <div className="mb-3">
+                       <span className="text-[9px] text-gray-500 block mb-1 uppercase font-bold text-center">Quantity</span>
                        <select 
                           value={quantity} 
                           onChange={(e) => setQuantity(parseInt(e.target.value))}
-                          className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-center text-xs appearance-none focus:border-red-500"
+                          className="w-full bg-black border border-gray-700 rounded-lg p-2 text-white text-center text-[10px] appearance-none focus:border-red-500"
                        >
                           {[1, 5, 10, 20, 50].map(q => <option key={q} value={q}>{q} Keys</option>)}
                        </select>
@@ -356,7 +356,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
                    <button 
                       onClick={handleGenerateKeys}
-                      className="w-full bg-red-700 hover:bg-red-600 text-white text-xs font-bold py-3.5 rounded-lg tracking-widest shadow-lg active:scale-95 transition-all"
+                      className="w-full bg-red-700 hover:bg-red-600 text-white text-[10px] font-bold py-3 rounded-lg tracking-widest shadow-lg active:scale-95 transition-all"
                    >
                      GENERATE KEYS
                    </button>
@@ -370,45 +370,45 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                               <Copy className="w-3 h-3"/>
                           </button>
                       </div>
-                      <div className="max-h-24 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                      <div className="max-h-24 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
                         {generatedKeys.map((k, i) => (
-                           <div key={i} className="text-green-400 text-xs font-bold font-mono">{k}</div>
+                           <div key={i} className="text-green-400 text-[10px] font-bold font-mono">{k}</div>
                         ))}
                       </div>
                    </div>
                  )}
 
-                 <div className="bg-[#0f0f0f] rounded-xl border border-white/5 flex flex-col h-[320px]">
+                 <div className="bg-[#0f0f0f] rounded-xl border border-white/5 flex flex-col h-[280px]">
                     <div className="flex justify-between items-center p-3 border-b border-white/5 bg-white/5">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Database ({keysList.length})</span>
-                        <button onClick={handleDeleteAllKeys} className="text-red-400 hover:text-red-300 bg-red-950/30 px-2 py-1 rounded text-[9px] border border-red-900/30 transition-colors">CLEAR ALL</button>
+                        <button onClick={handleDeleteAllKeys} className="text-red-400 hover:text-red-300 bg-red-950/30 px-2 py-1 rounded text-[8px] border border-red-900/30 transition-colors">CLEAR ALL</button>
                     </div>
                     <div className="overflow-y-auto p-2 space-y-2 custom-scrollbar flex-1">
                         {keysList.map((k) => (
-                          <div key={k.key} className="flex justify-between items-center p-3 bg-black border border-white/5 rounded-lg hover:border-white/10 transition-colors group">
+                          <div key={k.key} className="flex justify-between items-center p-2.5 bg-black border border-white/5 rounded-lg hover:border-white/10 transition-colors group">
                             <div>
-                                <div className="text-gray-200 font-bold text-[11px] font-mono tracking-wider flex items-center gap-2">
+                                <div className="text-gray-200 font-bold text-[10px] font-mono tracking-wider flex items-center gap-2">
                                     {k.key}
-                                    {copiedKey === k.key && <span className="text-[8px] text-green-500">COPIED</span>}
+                                    {copiedKey === k.key && <span className="text-[7px] text-green-500">COPIED</span>}
                                 </div>
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2 mt-0.5">
                                   {k.isUsed ? (
-                                    <div className="text-[9px] text-blue-400 font-mono flex items-center gap-1">
-                                      <Timer className="w-3 h-3"/> {formatRemainingTime(k)}
+                                    <div className="text-[8px] text-blue-400 font-mono flex items-center gap-1">
+                                      <Timer className="w-2.5 h-2.5"/> {formatRemainingTime(k)}
                                     </div>
                                   ) : (
-                                    <div className="text-[9px] text-gray-600">
+                                    <div className="text-[8px] text-gray-600">
                                       Duration: {(k.durationMs / 3600000).toFixed(1)}h
                                     </div>
                                   )}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <button onClick={() => copyToClipboard(k.key)} className="p-1.5 text-gray-500 hover:text-white bg-white/5 rounded hover:bg-white/10 transition-colors">
-                                    {copiedKey === k.key ? <Check className="w-3.5 h-3.5 text-green-500"/> : <Copy className="w-3.5 h-3.5"/>}
+                                    {copiedKey === k.key ? <Check className="w-3 h-3 text-green-500"/> : <Copy className="w-3 h-3"/>}
                                 </button>
                                 <button onClick={() => handleDeleteSingleKey(k.key)} className="p-1.5 text-gray-600 hover:text-red-500 bg-white/5 rounded hover:bg-red-950/20 transition-colors">
-                                    <Trash2 className="w-3.5 h-3.5"/>
+                                    <Trash2 className="w-3 h-3"/>
                                 </button>
                             </div>
                           </div>
@@ -421,61 +421,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
             {activeTab === 'settings' && (
                  <div className="space-y-4 animate-fade-in-up">
-                   <div className="bg-[#0f0f0f] border border-white/5 rounded-xl p-4 shadow-lg">
-                       <label className="text-[9px] text-gray-400 font-bold block mb-2 uppercase tracking-wide">App Name</label>
-                       <div className="flex items-center bg-black border border-gray-700 rounded-lg px-3 py-2">
-                           <Smartphone className="w-4 h-4 text-gray-500 mr-2" />
+                   <div className="bg-[#0f0f0f] border border-white/5 rounded-xl p-3 shadow-lg">
+                       <label className="text-[9px] text-gray-400 font-bold block mb-1.5 uppercase tracking-wide">App Name</label>
+                       <div className="flex items-center bg-black border border-gray-700 rounded-lg px-2.5 py-2">
+                           <Smartphone className="w-3.5 h-3.5 text-gray-500 mr-2" />
                            <input 
                               type="text" 
                               value={settings.appName || ''} 
                               onChange={(e) => setSettings({...settings, appName: e.target.value})}
                               placeholder="X-HUNTER PRIME"
-                              className="bg-transparent text-white w-full text-xs focus:outline-none placeholder-gray-700 font-bold"
+                              className="bg-transparent text-white w-full text-[10px] focus:outline-none placeholder-gray-700 font-bold"
                            />
                        </div>
                    </div>
 
-                   <div className="flex items-center justify-between bg-[#0f0f0f] border border-red-900/30 rounded-xl p-4 shadow-lg">
+                   <div className="flex items-center justify-between bg-[#0f0f0f] border border-red-900/30 rounded-xl p-3 shadow-lg">
                         <div>
-                           <div className="text-xs text-red-400 font-bold uppercase flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5"/> Strict Mode</div>
-                           <div className="text-[9px] text-gray-500 mt-1 tracking-wide">REQUIRE API VERIFICATION</div>
+                           <div className="text-[10px] text-red-400 font-bold uppercase flex items-center gap-1.5"><ShieldAlert className="w-3 h-3"/> Strict Mode</div>
+                           <div className="text-[8px] text-gray-500 mt-0.5 tracking-wide">REQUIRE API VERIFICATION</div>
                         </div>
                         <button onClick={toggleStrictMode} className={`transition-colors duration-300 ${settings.strictMode ? 'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'text-gray-700'}`}>
-                          {settings.strictMode ? <ToggleRight className="w-9 h-9" /> : <ToggleLeft className="w-9 h-9" />}
+                          {settings.strictMode ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
                         </button>
                    </div>
 
-                   <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5 space-y-4 shadow-lg">
+                   <div className="bg-[#0f0f0f] p-3 rounded-xl border border-white/5 space-y-3 shadow-lg">
                      <div>
-                       <label className="text-[9px] text-gray-400 font-bold block mb-2 uppercase tracking-wide">Channel Link</label>
+                       <label className="text-[9px] text-gray-400 font-bold block mb-1.5 uppercase tracking-wide">Channel Link</label>
                        <input 
                           type="text" 
                           value={settings.channelLink} 
                           onChange={(e) => setSettings({...settings, channelLink: e.target.value})}
                           placeholder="https://t.me/..."
-                          className="bg-black border border-gray-700 rounded-lg p-3 text-white w-full text-xs focus:border-red-500 transition-colors"
+                          className="bg-black border border-gray-700 rounded-lg p-2.5 text-white w-full text-[10px] focus:border-red-500 transition-colors"
                        />
                      </div>
 
                      {settings.strictMode && (
-                        <div className="space-y-3 pt-3 border-t border-white/5 animate-fade-in-up">
+                        <div className="space-y-2 pt-2 border-t border-white/5 animate-fade-in-up">
                             <div>
-                                <label className="text-[9px] text-red-400 font-bold block mb-2 uppercase tracking-wide flex items-center gap-1"><Key className="w-3 h-3"/> Bot Token</label>
+                                <label className="text-[9px] text-red-400 font-bold block mb-1.5 uppercase tracking-wide flex items-center gap-1"><Key className="w-3 h-3"/> Bot Token</label>
                                 <input 
                                     type="text" 
                                     value={settings.botToken || ''} 
                                     onChange={(e) => setSettings({...settings, botToken: e.target.value})}
-                                    className="bg-black border border-red-900/40 rounded-lg p-3 text-white w-full text-xs font-mono focus:border-red-500"
+                                    className="bg-black border border-red-900/40 rounded-lg p-2.5 text-white w-full text-[10px] font-mono focus:border-red-500"
                                     placeholder="123456:ABC-DEF..."
                                 />
                             </div>
                             <div>
-                                <label className="text-[9px] text-red-400 font-bold block mb-2 uppercase tracking-wide flex items-center gap-1"><Hash className="w-3 h-3"/> Channel ID</label>
+                                <label className="text-[9px] text-red-400 font-bold block mb-1.5 uppercase tracking-wide flex items-center gap-1"><Hash className="w-3 h-3"/> Channel ID</label>
                                 <input 
                                     type="text" 
                                     value={settings.channelChatId || ''} 
                                     onChange={(e) => setSettings({...settings, channelChatId: e.target.value})}
-                                    className="bg-black border border-red-900/40 rounded-lg p-3 text-white w-full text-xs font-mono focus:border-red-500"
+                                    className="bg-black border border-red-900/40 rounded-lg p-2.5 text-white w-full text-[10px] font-mono focus:border-red-500"
                                     placeholder="@channel or -100..."
                                 />
                             </div>
@@ -483,23 +483,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                      )}
 
                      <div>
-                       <label className="text-[9px] text-gray-400 font-bold block mb-2 uppercase tracking-wide">Contact Admin Link</label>
+                       <label className="text-[9px] text-gray-400 font-bold block mb-1.5 uppercase tracking-wide">Contact Admin Link</label>
                        <input 
                           type="text" 
                           value={settings.contactLink} 
                           onChange={(e) => setSettings({...settings, contactLink: e.target.value})}
                           placeholder="@username"
-                          className="bg-black border border-gray-700 rounded-lg p-3 text-white w-full text-xs focus:border-blue-500 transition-colors"
+                          className="bg-black border border-gray-700 rounded-lg p-2.5 text-white w-full text-[10px] focus:border-blue-500 transition-colors"
                        />
                      </div>
 
-                     {settingsError && <div className="text-[10px] text-red-500 text-center font-bold bg-red-950/20 py-2 rounded animate-pulse">{settingsError}</div>}
+                     {settingsError && <div className="text-[9px] text-red-500 text-center font-bold bg-red-950/20 py-1.5 rounded animate-pulse">{settingsError}</div>}
 
                      <button 
                         onClick={handleSaveSettings}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-3.5 rounded-lg tracking-widest mt-2 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold py-3 rounded-lg tracking-widest mt-1 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
                      >
-                       {savedSettings ? <Check className="w-4 h-4"/> : <Save className="w-4 h-4"/>}
+                       {savedSettings ? <Check className="w-3.5 h-3.5"/> : <Save className="w-3.5 h-3.5"/>}
                        {savedSettings ? 'SETTINGS SAVED' : 'SAVE CONFIGURATION'}
                      </button>
                    </div>
