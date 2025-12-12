@@ -142,41 +142,47 @@ function App() {
     return () => clearInterval(interval);
   }, [appSettings]);
 
-  // Wingo Logic & Live Clock - UTC+6 (Bangladesh Time)
+  // Wingo Logic & Live Clock
   useEffect(() => {
     const updateGameData = () => {
-      // 1. Get current UTC time
       const now = new Date();
-      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-      
-      // 2. Convert to Dhaka Time (UTC + 6 hours)
-      const dhakaTime = new Date(utc + (3600000 * 6));
 
-      // --- CLOCK UPDATE ---
+      // --- CLOCK UPDATE (Bangladesh Time UTC+6) ---
+      // We keep the visual clock in BD time as per user preference
+      const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const dhakaTime = new Date(utcTime + (3600000 * 6));
+      
       const h = String(dhakaTime.getHours()).padStart(2, '0');
       const m = String(dhakaTime.getMinutes()).padStart(2, '0');
       const s = String(dhakaTime.getSeconds()).padStart(2, '0');
       setFormattedTime(`${h}:${m}:${s}`);
 
-      // --- PERIOD UPDATE ---
-      const year = dhakaTime.getFullYear();
-      const month = String(dhakaTime.getMonth() + 1).padStart(2, '0');
-      const day = String(dhakaTime.getDate()).padStart(2, '0');
+      // --- PERIOD UPDATE (UTC Logic) ---
+      // Standard Wingo games usually use UTC time for the period number.
+      // 9:24 BD Time = 03:24 UTC.
+      // 3 * 60 + 24 = 204. Period is 204 + 1 = 205.
+      // Format: YYYYMMDD + 10001 + Sequence
       
-      const hours = dhakaTime.getHours();
-      const minutes = dhakaTime.getMinutes();
-      const seconds = dhakaTime.getSeconds();
+      const utcYear = now.getUTCFullYear();
+      const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const utcDay = String(now.getUTCDate()).padStart(2, '0');
       
-      const totalMinutes = (hours * 60) + minutes;
+      const utcHours = now.getUTCHours();
+      const utcMinutes = now.getUTCMinutes();
+      const utcSeconds = now.getUTCSeconds();
+      
+      const totalMinutes = (utcHours * 60) + utcMinutes;
+      // Add 1 because the period starts at 1, not 0
       const periodSequence = String(totalMinutes + 1).padStart(4, '0');
       
-      const newPeriod = `${year}${month}${day}01${periodSequence}`;
+      // Constructing the ID based on user request: 20251212 10001 0205
+      const newPeriod = `${utcYear}${utcMonth}${utcDay}10001${periodSequence}`;
       
       if (newPeriod !== period) {
           setPeriod(newPeriod);
       }
       
-      const remaining = 60 - seconds;
+      const remaining = 60 - utcSeconds;
       setTimeLeft(remaining === 60 ? 0 : remaining);
     };
     
