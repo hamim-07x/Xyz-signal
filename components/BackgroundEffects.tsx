@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 
 export const BackgroundEffects: React.FC = () => {
@@ -20,138 +21,60 @@ export const BackgroundEffects: React.FC = () => {
     };
     setSize();
 
-    // Configuration
-    const particleCount = Math.min(Math.floor(width * 0.08), 80); 
-    const connectionDistance = 120;
-    const dataPacketChance = 0.02;
-
-    class Particle {
-        x: number;
-        y: number;
-        vx: number;
-        vy: number;
-        char: string;
-        size: number;
-
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.5;
-            this.vy = (Math.random() - 0.5) * 0.5;
-            this.char = Math.random() > 0.5 ? '1' : '0';
-            this.size = Math.random() * 10 + 10;
-        }
-
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-
-            // Bounce off edges
-            if (this.x < 0 || this.x > width) this.vx *= -1;
-            if (this.y < 0 || this.y > height) this.vy *= -1;
-        }
-
-        draw() {
-            if (!ctx) return;
-            ctx.fillStyle = 'rgba(0, 255, 65, 0.4)'; // Dim matrix green
-            ctx.font = `bold ${this.size}px monospace`;
-            ctx.fillText(this.char, this.x, this.y);
-        }
-    }
-
-    class Packet {
-        x: number;
-        y: number;
-        tx: number; // Target X
-        ty: number; // Target Y
-        speed: number;
-        progress: number;
-        active: boolean;
-
-        constructor(p1: Particle, p2: Particle) {
-            this.x = p1.x;
-            this.y = p1.y;
-            this.tx = p2.x;
-            this.ty = p2.y;
-            this.speed = 0.05;
-            this.progress = 0;
-            this.active = true;
-        }
-
-        update() {
-            this.progress += this.speed;
-            if (this.progress >= 1) {
-                this.active = false;
-            }
-            this.x = this.x + (this.tx - this.x) * this.speed;
-            this.y = this.y + (this.ty - this.y) * this.speed;
-        }
-
-        draw() {
-            if (!ctx) return;
-            ctx.fillStyle = '#fff'; // Bright white packet
-            ctx.beginPath();
-            ctx.arc(this.x, this.y - 5, 2, 0, Math.PI * 2); // Offset slightly for text center
-            ctx.fill();
-            
-            // Glow
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#00ff41';
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
-    }
-
-    const particles: Particle[] = [];
-    let packets: Packet[] = [];
-
-    // Initialize Particles
-    for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle());
+    // Cyberpunk Nodes
+    const nodes: {x: number, y: number, vx: number, vy: number, size: number}[] = [];
+    const maxNodes = 60;
+    
+    for(let i=0; i<maxNodes; i++) {
+        nodes.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            size: Math.random() * 2 + 1
+        });
     }
 
     const animate = () => {
-        ctx.fillStyle = '#050505';
+        // Deep fade for trail effect
+        ctx.fillStyle = 'rgba(5, 5, 8, 0.1)'; 
         ctx.fillRect(0, 0, width, height);
 
-        // Draw connections and spawn packets
-        ctx.strokeStyle = 'rgba(0, 255, 65, 0.1)';
-        ctx.lineWidth = 1;
+        // Draw Nodes & Connections
+        nodes.forEach((node, i) => {
+            node.x += node.vx;
+            node.y += node.vy;
 
-        for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            p.update();
-            p.draw();
+            // Bounce
+            if(node.x < 0 || node.x > width) node.vx *= -1;
+            if(node.y < 0 || node.y > height) node.vy *= -1;
 
-            for (let j = i + 1; j < particles.length; j++) {
-                const p2 = particles[j];
-                const dx = p.x - p2.x;
-                const dy = p.y - p2.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+            // Draw Node
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+            ctx.fillStyle = '#00f3ff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f3ff';
+            ctx.fill();
+            ctx.shadowBlur = 0;
 
-                if (dist < connectionDistance) {
+            // Connections
+            for(let j=i+1; j<nodes.length; j++) {
+                const node2 = nodes[j];
+                const dx = node.x - node2.x;
+                const dy = node.y - node2.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                if(dist < 100) {
                     ctx.beginPath();
-                    ctx.moveTo(p.x, p.y - 5);
-                    ctx.lineTo(p2.x, p2.y - 5);
+                    ctx.moveTo(node.x, node.y);
+                    ctx.lineTo(node2.x, node2.y);
+                    ctx.strokeStyle = `rgba(0, 243, 255, ${1 - dist/100})`;
+                    ctx.lineWidth = 0.5;
                     ctx.stroke();
-
-                    // Chance to spawn a data packet
-                    if (Math.random() < dataPacketChance) {
-                        packets.push(new Packet(p, p2));
-                    }
                 }
             }
-        }
-
-        // Update and draw packets
-        for (let i = packets.length - 1; i >= 0; i--) {
-            const pkt = packets[i];
-            pkt.update();
-            pkt.draw();
-            if (!pkt.active) {
-                packets.splice(i, 1);
-            }
-        }
+        });
 
         requestAnimationFrame(animate);
     };
@@ -165,5 +88,11 @@ export const BackgroundEffects: React.FC = () => {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="fixed inset-0 z-[-1] bg-[#050505]" />;
+  return (
+    <>
+        <canvas ref={canvasRef} className="fixed inset-0 z-[-1] bg-[#020204]" />
+        {/* Hex overlay for texture */}
+        <div className="fixed inset-0 z-[-1] opacity-5 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+    </>
+  );
 };

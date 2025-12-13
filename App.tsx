@@ -7,15 +7,14 @@ import { LockedView } from './components/LockedView';
 import { AdminPanel } from './components/AdminPanel';
 import { LicenseTimer } from './components/LicenseTimer';
 import { HackSimulation } from './components/HackSimulation';
-import { Wifi, Power, User, Trash2, Clock, Ban } from 'lucide-react';
+import { Wifi, Power, User, Trash2, Clock, Ban, Activity, Radio, Cpu } from 'lucide-react';
 import { PredictionResult, HistoryItem, TelegramUser, GlobalSettings } from './types';
 import { saveUserToFirebase, subscribeToSettings, listenToUserBanStatus } from './lib/firebase';
 import { SupportProfile } from './components/SupportProfile';
 
-// --- SCRAMBLE TEXT COMPONENT ---
 const ScrambleText: React.FC<{ text: string; className?: string }> = ({ text, className }) => {
   const [display, setDisplay] = useState(text || '');
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
 
   useEffect(() => {
     if (!text) return;
@@ -30,11 +29,9 @@ const ScrambleText: React.FC<{ text: string; className?: string }> = ({ text, cl
           })
           .join("")
       );
-
       if (iteration >= text.length) clearInterval(interval);
       iteration += 1 / 3;
     }, 40);
-
     return () => clearInterval(interval);
   }, [text]);
 
@@ -59,18 +56,14 @@ function App() {
   const [currentPrediction, setCurrentPrediction] = useState<PredictionResult | null>(null);
   const [lastPredictedPeriod, setLastPredictedPeriod] = useState<string>('');
   
-  // Live Clock State
+  // Live Clock
   const [formattedTime, setFormattedTime] = useState('');
-
-  const [appSettings, setAppSettings] = useState<GlobalSettings>({ appName: 'X-HUNTER', channelLink: '', contactLink: '', strictMode: false });
+  const [appSettings, setAppSettings] = useState<GlobalSettings>({ appName: 'CYBER-HUNTER', channelLink: '', contactLink: '', strictMode: false });
   const [isSupportOpen, setIsSupportOpen] = useState(false);
 
-  // Initialization
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('cmd') === 'admin') {
-        setIsAdminOpen(true);
-    }
+    if (urlParams.get('cmd') === 'admin') setIsAdminOpen(true);
 
     const unsubscribe = subscribeToSettings((settings) => {
         if (settings) {
@@ -84,89 +77,51 @@ function App() {
       tg.ready();
       tg.expand();
       tg.setHeaderColor('#000000');
-      
-      const user = tg.initDataUnsafe?.user;
-      if (user) {
-        setTelegramUser(user);
-        checkLocalLicense(user.id);
-        saveUserToFirebase(user);
-      } else {
-        const guestId = 1001; 
-        setTelegramUser({ id: guestId, first_name: "GUEST" });
-        checkLocalLicense(guestId);
-      }
+      const user = tg.initDataUnsafe?.user || { id: 1001, first_name: "GUEST" };
+      setTelegramUser(user);
+      checkLocalLicense(user.id);
+      saveUserToFirebase(user);
     } else {
-       const guestId = 1001;
-       setTelegramUser({ id: guestId, first_name: "WEB_USER" });
-       checkLocalLicense(guestId);
+       setTelegramUser({ id: 1001, first_name: "WEB_USER" });
+       checkLocalLicense(1001);
     }
 
     return () => unsubscribe();
   }, []);
 
-  // Listen for Ban Status
   useEffect(() => {
     if (telegramUser?.id) {
-        const unsubscribeBan = listenToUserBanStatus(telegramUser.id, (status) => {
-            setIsBanned(status);
-        });
-        return () => unsubscribeBan();
+        return listenToUserBanStatus(telegramUser.id, setIsBanned);
     }
   }, [telegramUser]);
 
-  // Ping Sim
   useEffect(() => {
-    const interval = setInterval(() => {
-        setPing(Math.floor(Math.random() * (50 - 15) + 15));
-    }, 2000);
+    const interval = setInterval(() => setPing(Math.floor(Math.random() * (50 - 15) + 15)), 2000);
     return () => clearInterval(interval);
   }, []);
 
   const checkLocalLicense = (userId: number) => {
     const savedExpiry = localStorage.getItem(`xhunter_license_${userId}`);
-    const now = Date.now();
-    if (savedExpiry) {
-      const expiryTime = parseInt(savedExpiry);
-      if (expiryTime > now) {
+    if (savedExpiry && parseInt(savedExpiry) > Date.now()) {
         setIsLicenseValid(true);
-        setLicenseExpiry(expiryTime);
-      } else {
-        setIsLicenseValid(false);
-      }
+        setLicenseExpiry(parseInt(savedExpiry));
     }
   };
 
-  // Wingo Logic & Live Clock
   useEffect(() => {
     const updateGameData = () => {
       const now = new Date();
       const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
       const dhakaTime = new Date(utcTime + (3600000 * 6));
-      
-      const h = String(dhakaTime.getHours()).padStart(2, '0');
-      const m = String(dhakaTime.getMinutes()).padStart(2, '0');
-      const s = String(dhakaTime.getSeconds()).padStart(2, '0');
-      setFormattedTime(`${h}:${m}:${s}`);
+      setFormattedTime(`${String(dhakaTime.getHours()).padStart(2,'0')}:${String(dhakaTime.getMinutes()).padStart(2,'0')}:${String(dhakaTime.getSeconds()).padStart(2,'0')}`);
 
-      const utcYear = now.getUTCFullYear();
-      const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
-      const utcDay = String(now.getUTCDate()).padStart(2, '0');
-      const utcHours = now.getUTCHours();
-      const utcMinutes = now.getUTCMinutes();
-      const utcSeconds = now.getUTCSeconds();
+      const totalMinutes = (now.getUTCHours() * 60) + now.getUTCMinutes();
+      const newPeriod = `${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}10001${String(totalMinutes + 1).padStart(4, '0')}`;
+      if (newPeriod !== period) setPeriod(newPeriod);
       
-      const totalMinutes = (utcHours * 60) + utcMinutes;
-      const periodSequence = String(totalMinutes + 1).padStart(4, '0');
-      const newPeriod = `${utcYear}${utcMonth}${utcDay}10001${periodSequence}`;
-      
-      if (newPeriod !== period) {
-          setPeriod(newPeriod);
-      }
-      
-      const remaining = 60 - utcSeconds;
-      setTimeLeft(remaining === 60 ? 0 : remaining);
+      const s = now.getUTCSeconds();
+      setTimeLeft(60 - s === 60 ? 0 : 60 - s);
     };
-    
     const interval = setInterval(updateGameData, 1000);
     updateGameData();
     return () => clearInterval(interval);
@@ -177,13 +132,8 @@ function App() {
       setIsLicenseValid(true);
   };
 
-  const handleClearHistory = useCallback(() => {
-      setHistory([]);
-  }, []);
-
   const handleHack = () => {
-    if (isAnalyzing || timeLeft <= 5) return;
-    if (lastPredictedPeriod === period) return;
+    if (isAnalyzing || timeLeft <= 5 || lastPredictedPeriod === period) return;
 
     setIsAnalyzing(true);
     setCurrentPrediction(null);
@@ -200,266 +150,194 @@ function App() {
       setCurrentPrediction(result);
       setIsAnalyzing(false);
       setLastPredictedPeriod(period);
-      setHistory(prev => [{ period, result, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}) }, ...prev].slice(0, 10));
-    }, 3000);
+      setHistory(prev => [{ period, result, timestamp: new Date().toLocaleTimeString('en-US',{hour12:false}) }, ...prev].slice(0, 10));
+    }, 3500); // 3.5s for cool animation
   };
 
-  const handleIntroComplete = useCallback(() => {
-      setShowIntro(false);
-  }, []);
+  if (showIntro) return <IntroAnimation appName={appSettings.appName} onComplete={() => setShowIntro(false)} />;
 
-  const getDisplayName = () => {
-    if (!telegramUser) return 'GUEST';
-    return `${telegramUser.first_name}${telegramUser.last_name ? ' ' + telegramUser.last_name : ''}`;
-  };
-
-  if (showIntro) {
-    return <IntroAnimation appName={appSettings.appName} onComplete={handleIntroComplete} />;
-  }
-
-  // --- BANNED VIEW ---
-  if (isBanned) {
-      return (
-          <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-6 text-center">
-              <div className="absolute inset-0 bg-red-900/10"></div>
-              <div className="relative border-2 border-red-600 p-8 rounded-2xl bg-black shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-pulse">
-                  <Ban className="w-16 h-16 text-red-600 mx-auto mb-4" />
-                  <h1 className="text-3xl font-bold font-orbitron text-red-500 tracking-widest mb-2">ACCESS DENIED</h1>
-                  <p className="text-sm font-mono text-red-400 tracking-wider">USER_ID: {telegramUser?.id}</p>
-                  <div className="mt-6 border-t border-red-900/50 pt-4">
-                      <p className="text-[10px] text-gray-500">YOUR ACCOUNT HAS BEEN TERMINATED BY ADMINISTRATOR</p>
-                  </div>
-              </div>
+  if (isBanned) return (
+      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-6 text-center font-mono">
+          <div className="border border-red-500 p-8 rounded bg-red-950/20 shadow-[0_0_50px_red]">
+              <Ban className="w-20 h-20 text-red-500 mx-auto mb-4 animate-pulse" />
+              <h1 className="text-3xl font-bold text-red-500 tracking-widest glitch-text" data-text="TERMINATED">TERMINATED</h1>
+              <p className="mt-4 text-red-400">CONNECTION SEVERED BY ADMIN</p>
           </div>
-      );
-  }
-
-  const displayName = getDisplayName();
+      </div>
+  );
 
   return (
-    <div className="relative h-screen w-full bg-black text-white overflow-hidden font-sans select-none flex flex-col">
+    <div className="relative h-screen w-full overflow-hidden flex flex-col font-sans select-none bg-[#050505]">
       <BackgroundEffects />
       
-      {/* GLOBAL OVERLAYS */}
-      <div className="scanlines pointer-events-none"></div>
-      <div className="scan-overlay pointer-events-none"></div>
+      {/* HUD OVERLAY */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-transparent to-transparent opacity-80"></div>
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+      </div>
 
       {!isChannelVerified && (
         <TelegramModal 
-          onVerify={() => { setIsChannelVerified(true); }} 
+          onVerify={() => setIsChannelVerified(true)} 
           channelLink={appSettings.channelLink}
           strictMode={appSettings.strictMode}
           botToken={appSettings.botToken}
           channelChatId={appSettings.channelChatId}
           telegramUserId={telegramUser?.id}
           telegramPhoto={telegramUser?.photo_url}
-          telegramName={displayName}
+          telegramName={telegramUser?.first_name}
         />
       )}
       
-      <AdminPanel 
-        isOpen={isAdminOpen} 
-        onClose={() => setIsAdminOpen(false)} 
-        onClearHistory={handleClearHistory}
-      />
+      <AdminPanel isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} onClearHistory={() => setHistory([])} />
+      <SupportProfile isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} adminName="SUPPORT AGENT" adminImageUrl={appSettings.adminImageUrl} contactLink={appSettings.contactLink} />
 
-       <SupportProfile 
-        isOpen={isSupportOpen}
-        onClose={() => setIsSupportOpen(false)}
-        adminName="ADMIN SUPPORT"
-        adminImageUrl={appSettings.adminImageUrl}
-        contactLink={appSettings.contactLink}
-      />
+      {/* --- APP CONTAINER --- */}
+      <div className={`flex flex-col h-full w-full z-10 transition-opacity duration-1000 ${isChannelVerified ? 'opacity-100' : 'opacity-0'}`}>
 
-      {/* --- WRAPPER FOR MAIN CONTENT ANIMATION --- */}
-      <div className={`flex flex-col h-full w-full ${isChannelVerified ? 'animate-fade-in-up' : 'opacity-0'}`}>
-
-        {/* --- HEADER --- */}
-        <div className="relative z-20 px-3 pt-2 pb-2 flex justify-between items-start bg-black/40 border-b border-white/5 backdrop-blur-md">
-                {/* Left: Avatar, Info & Live Clock */}
-                <div className="flex items-center gap-2.5 mt-1">
-                    <div className="w-9 h-9 rounded-full border border-cyan-500/50 p-0.5 shadow-[0_0_10px_rgba(6,182,212,0.3)] shrink-0 active:scale-90 transition-transform">
-                        {telegramUser?.photo_url ? (
-                            <img src={telegramUser.photo_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full rounded-full bg-cyan-950 flex items-center justify-center">
-                                <User className="w-4 h-4 text-cyan-400" />
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-col justify-center">
-                        <span className="text-xs font-bold text-white font-orbitron leading-none tracking-wide">
-                            {displayName}
-                        </span>
-                        <span className="text-[9px] text-cyan-500 font-mono mt-0.5 mb-0.5">
-                            UID: {telegramUser?.id || '---'}
-                        </span>
-                        
-                        {/* LIVE CLOCK (Small & Stylish) */}
-                        <div className="flex items-center gap-1 bg-black/40 border border-white/10 px-1.5 py-0.5 rounded-md w-fit">
-                            <Clock className="w-2 h-2 text-cyan-400 animate-pulse" />
-                            <span className="text-[8px] font-mono font-bold text-gray-300 leading-none">
-                                {formattedTime} <span className="text-[7px] text-gray-500 ml-0.5">BD</span>
-                            </span>
+        {/* --- TOP BAR --- */}
+        <div className="px-4 py-3 flex justify-between items-center backdrop-blur-md border-b border-white/5 bg-black/40">
+            <div className="flex items-center gap-3">
+                <div className="relative w-10 h-10">
+                    <div className="absolute inset-0 bg-[#00f3ff] rounded-full blur-md opacity-50 animate-pulse"></div>
+                    <img src={telegramUser?.photo_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} alt="U" className="w-full h-full rounded-full object-cover relative z-10 border border-[#00f3ff]" />
+                </div>
+                <div>
+                    <h2 className="text-xs font-bold text-white font-orbitron tracking-widest">{telegramUser?.first_name || 'AGENT'}</h2>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-1 bg-[#00f3ff]/10 px-1.5 py-0.5 rounded border border-[#00f3ff]/30">
+                            <Activity className="w-2.5 h-2.5 text-[#00f3ff]" />
+                            <span className="text-[8px] font-mono text-[#00f3ff]">{formattedTime}</span>
                         </div>
                     </div>
                 </div>
-
-                {/* Right: App Name & Ping */}
-                <div className="flex flex-col items-end gap-0.5 mt-1">
-                    {/* App Name */}
-                    <div className="text-[9px] font-bold text-gray-400 font-orbitron tracking-[0.2em] transition-colors mt-0.5">
-                    <ScrambleText text={appSettings.appName || "HUNTER"} />
-                    </div>
-
-                    {/* Ping */}
-                    <div className="flex items-center gap-1 bg-black/50 px-1 py-0.5 rounded border border-white/10">
-                        <Wifi className="w-2 h-2 text-green-500" />
-                        <span className="text-[7px] text-gray-500 font-mono">{ping}ms</span>
-                    </div>
+            </div>
+            <div className="text-right">
+                <div className="flex items-center justify-end gap-1 text-[8px] text-gray-500 font-mono mb-1">
+                    <Wifi className="w-2.5 h-2.5 text-green-500" />
+                    <span>{ping} MS</span>
                 </div>
+                <div className="text-[10px] font-bold text-white font-orbitron tracking-[0.2em] text-shadow-glow">
+                    <ScrambleText text={appSettings.appName || "SYSTEM"} />
+                </div>
+            </div>
         </div>
 
-        {/* --- MAIN CONTENT --- */}
-        <div className="flex-1 relative overflow-y-auto custom-scrollbar p-2 pb-0 flex flex-col gap-2">
+        {/* --- MAIN CONTENT AREA --- */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-4">
+            
+            {/* DATA CARD */}
+            <div className="cyber-card rounded-xl p-4 flex flex-col items-center justify-center relative">
+                <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#00f3ff]"></div>
+                <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#00f3ff]"></div>
                 
-                {/* PERIOD & TIMER CARD */}
-                <div className="relative rounded-lg bg-gradient-to-br from-gray-900 to-black border border-white/10 p-3 shadow-lg overflow-hidden shrink-0 flex flex-col items-center hover:border-white/20 transition-colors">
-                    {/* Period Info */}
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">LIVE PERIOD</span>
-                    <div className="text-2xl font-bold font-mono text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)] tracking-widest mb-1">
-                        {period}
-                    </div>
-                    
-                    {/* Visual Separator */}
-                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-1"></div>
-
-                    {/* Countdown Timer */}
-                    <div className="flex items-center gap-1.5 mt-1">
-                        <Clock className="w-3.5 h-3.5 text-cyan-500 animate-pulse" />
-                        <span className={`text-xl font-bold font-mono tracking-widest ${timeLeft <= 10 ? 'text-red-500' : 'text-white'}`}>
-                            00:{timeLeft.toString().padStart(2, '0')}
-                        </span>
-                    </div>
+                <span className="text-[9px] text-gray-400 font-mono tracking-[0.3em] mb-1">TARGET_PERIOD</span>
+                <div className="text-2xl font-bold font-mono text-[#00f3ff] tracking-widest drop-shadow-[0_0_10px_#00f3ff]">
+                    {period.slice(0,8)}-<span className="text-white">{period.slice(8)}</span>
                 </div>
-
-                {/* LICENSE TIMER - COMPACT */}
-                {isLicenseValid ? (
-                <LicenseTimer expiryTimestamp={licenseExpiry} onExpire={() => { setIsLicenseValid(false); }} />
-                ) : null}
-
-                {isLicenseValid ? (
-                <div className="flex-1 flex flex-col items-center justify-center relative min-h-[240px]">
-                    
-                    {/* CENTRAL INTERFACE - COMPACT MOBILE LAYOUT */}
-                    <div className="relative w-full h-full flex flex-col items-center justify-center gap-3">
-                        
-                        {/* REACTOR CONTAINER - SMALLER SIZE */}
-                        <div className="reactor-container mt-1 scale-90 relative w-[150px] h-[150px] flex items-center justify-center">
-                            {/* Outer Rings */}
-                            <div className={`absolute inset-0 border-2 ${isAnalyzing ? 'border-red-500' : 'border-cyan-800'} rounded-full animate-[spin_8s_linear_infinite] opacity-50`}></div>
-                            <div className={`absolute inset-2 border border-dashed ${isAnalyzing ? 'border-red-400' : 'border-cyan-600'} rounded-full animate-[spin_4s_linear_infinite_reverse] opacity-40`}></div>
-                            
-                            {/* Inner Core / Button */}
-                            <button 
-                                onClick={handleHack}
-                                disabled={timeLeft <= 5 || isAnalyzing || lastPredictedPeriod === period}
-                                className={`absolute inset-0 w-full h-full rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(0,0,0,0.5)] transition-all border-2 overflow-hidden z-20
-                                    ${timeLeft <= 5 ? 'bg-gray-900 border-gray-700 opacity-50 grayscale' : 
-                                    isAnalyzing ? 'bg-black border-red-500 shadow-[0_0_25px_rgba(220,38,38,0.4)]' : 
-                                    'bg-black border-cyan-500 shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95'}`}
-                            >
-                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
-                                
-                                {/* DEFAULT STATE */}
-                                {!isAnalyzing && (!currentPrediction || lastPredictedPeriod !== period) && (
-                                    <div className="flex flex-col items-center z-10">
-                                        <Power className={`w-7 h-7 mb-0.5 ${timeLeft <= 5 ? 'text-gray-500' : 'text-cyan-400 animate-pulse'}`} />
-                                        <span className={`text-[9px] font-bold font-orbitron tracking-widest ${timeLeft <= 5 ? 'text-gray-500' : 'text-white'}`}>
-                                            {timeLeft <= 5 ? 'WAIT' : 'START'}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {isAnalyzing && (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <HackSimulation />
-                                    </div>
-                                )}
-
-                                {/* RESULT OVERLAY - ABSOLUTE CENTERED */}
-                                {!isAnalyzing && currentPrediction && lastPredictedPeriod === period && (
-                                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md animate-scale-in rounded-full">
-                                        <span className={`text-xl font-black font-orbitron tracking-widest uppercase mb-0.5 drop-shadow-[0_0_8px_currentColor]
-                                            ${currentPrediction.size === 'Big' ? 'text-yellow-400' : 'text-cyan-400'}`}>
-                                            {currentPrediction.size}
-                                        </span>
-                                        
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg text-white border-2 border-white/20 shadow-lg mt-0.5
-                                            ${currentPrediction.color === 'Green' ? 'bg-green-600' : currentPrediction.color === 'Red' ? 'bg-red-600' : 'bg-purple-600'}`}>
-                                            {currentPrediction.number}
-                                        </div>
-                                    </div>
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Info Text */}
-                        <div className="h-5 flex items-center justify-center">
-                            {timeLeft <= 5 ? (
-                                <span className="text-[8px] text-red-500 font-bold bg-red-950/30 px-2 py-0.5 rounded border border-red-900/50">DO NOT TRADE</span>
-                            ) : isAnalyzing ? (
-                                <span className="text-[8px] text-red-400 font-mono animate-pulse">DECRYPTING...</span>
-                            ) : lastPredictedPeriod === period ? (
-                                <span className="text-[8px] text-green-400 font-mono tracking-widest">SIGNAL LOCKED</span>
-                            ) : (
-                                <span className="text-[8px] text-cyan-600 font-mono tracking-widest opacity-70">SYSTEM READY</span>
-                            )}
-                        </div>
-
-                    </div>
+                
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent my-2"></div>
+                
+                <div className="flex items-center gap-2">
+                    <Clock className={`w-4 h-4 ${timeLeft <= 10 ? 'text-red-500 animate-ping' : 'text-gray-400'}`} />
+                    <span className={`text-xl font-bold font-mono tracking-widest ${timeLeft <= 10 ? 'text-red-500' : 'text-white'}`}>
+                        00:{timeLeft.toString().padStart(2, '0')}
+                    </span>
                 </div>
-                ) : (
-                <LockedView 
-                    telegramId={telegramUser?.id || 0} 
-                    onSuccess={handleLoginSuccess}
-                    contactLink={appSettings.contactLink}
-                    onOpenSupport={() => setIsSupportOpen(true)}
-                    settings={appSettings}
-                />
-                )}
+            </div>
+
+            {isLicenseValid ? (
+               <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
+                   <LicenseTimer expiryTimestamp={licenseExpiry} onExpire={() => setIsLicenseValid(false)} />
+                   
+                   {/* REACTOR BUTTON */}
+                   <div className="relative w-48 h-48 flex items-center justify-center mt-6">
+                       {/* Background Rings */}
+                       <div className={`absolute inset-0 border border-[#00f3ff]/30 rounded-full ${isAnalyzing ? 'animate-[spin_1s_linear_infinite]' : 'animate-spin-slow'}`}></div>
+                       <div className={`absolute inset-4 border border-dashed border-[#bc13fe]/40 rounded-full ${isAnalyzing ? 'animate-[spin_2s_linear_infinite_reverse]' : 'animate-spin-reverse'}`}></div>
+                       
+                       {/* Core Button */}
+                       <button
+                           onClick={handleHack}
+                           disabled={timeLeft <= 5 || isAnalyzing || lastPredictedPeriod === period}
+                           className={`relative z-20 w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300
+                             ${isAnalyzing 
+                                ? 'bg-red-900/20 shadow-[0_0_50px_red] scale-95 border-2 border-red-500' 
+                                : 'bg-black/50 shadow-[0_0_30px_#00f3ff] hover:scale-105 active:scale-95 border-2 border-[#00f3ff]'
+                             }
+                           `}
+                       >
+                           {/* Button Content */}
+                           {isAnalyzing ? (
+                               <HackSimulation />
+                           ) : currentPrediction && lastPredictedPeriod === period ? (
+                               <div className="flex flex-col items-center animate-scale-in">
+                                   <div className={`text-2xl font-black font-orbitron tracking-widest ${currentPrediction.size === 'Big' ? 'text-yellow-400' : 'text-cyan-400'} drop-shadow-md`}>
+                                       {currentPrediction.size}
+                                   </div>
+                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white mt-1 border-2 border-white/30 shadow-lg
+                                       ${currentPrediction.color === 'Green' ? 'bg-green-600' : currentPrediction.color === 'Red' ? 'bg-red-600' : 'bg-purple-600'}
+                                   `}>
+                                       {currentPrediction.number}
+                                   </div>
+                               </div>
+                           ) : (
+                               <div className="flex flex-col items-center">
+                                   <Power className={`w-8 h-8 ${timeLeft <= 5 ? 'text-gray-600' : 'text-[#00f3ff] animate-pulse'}`} />
+                                   <span className={`text-[10px] font-orbitron font-bold mt-1 tracking-widest ${timeLeft <= 5 ? 'text-gray-600' : 'text-white'}`}>
+                                       {timeLeft <= 5 ? 'LOCKED' : 'INFILTRATE'}
+                                   </span>
+                               </div>
+                           )}
+                       </button>
+
+                       {/* Particles when analyzing */}
+                       {isAnalyzing && (
+                          <div className="absolute inset-0 rounded-full border-4 border-t-red-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                       )}
+                   </div>
+
+                   {/* Status Text */}
+                   <div className="mt-8 text-center h-6">
+                       {timeLeft <= 5 ? (
+                           <span className="text-red-500 font-mono text-xs font-bold bg-red-950/30 px-3 py-1 rounded border border-red-800">⚠️ TRADE RESTRICTED</span>
+                       ) : isAnalyzing ? (
+                           <span className="text-[#00f3ff] font-mono text-xs animate-pulse">BYPASSING FIREWALL...</span>
+                       ) : lastPredictedPeriod === period ? (
+                           <span className="text-green-400 font-mono text-xs tracking-widest">DATA EXTRACTED SUCCESSFULLY</span>
+                       ) : (
+                           <span className="text-gray-500 font-mono text-xs tracking-widest">AWAITING COMMAND</span>
+                       )}
+                   </div>
+               </div>
+            ) : (
+               <LockedView telegramId={telegramUser?.id || 0} onSuccess={handleLoginSuccess} contactLink={appSettings.contactLink} onOpenSupport={() => setIsSupportOpen(true)} settings={appSettings} />
+            )}
+            
         </div>
 
-        {/* --- BOTTOM SECTION (History Only - Clean) --- */}
+        {/* --- BOTTOM STREAM --- */}
         {isLicenseValid && (
-            <div className="bg-black/95 border-t border-white/10 p-1.5 pb-4 shrink-0 z-20 backdrop-blur-xl animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                {history.length > 0 && (
-                    <div>
-                        <div className="flex items-center justify-between mb-1.5 px-1.5">
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse"></div>
-                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">History</span>
-                            </div>
-                            <button onClick={handleClearHistory} className="text-gray-600 hover:text-red-500 transition-colors p-1 active:scale-90">
-                                <Trash2 className="w-2.5 h-2.5" />
-                            </button>
+            <div className="bg-black/80 backdrop-blur-md border-t border-white/5 p-2 h-20 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00f3ff] to-transparent opacity-30"></div>
+                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1 h-full items-center px-2">
+                    {history.length === 0 ? (
+                        <div className="w-full text-center text-[9px] text-gray-600 font-mono uppercase tracking-widest">
+                            NO_DATA_STREAM_FOUND
                         </div>
-                        <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar px-1">
-                            {history.map((h, i) => (
-                                <div key={i} className="shrink-0 bg-[#0f0f0f] border border-white/10 rounded-md px-2 py-1 flex flex-col items-center min-w-[50px] relative overflow-hidden animate-scale-in">
-                                    <span className="text-[7px] text-gray-500 font-mono mb-0.5">#{h.period.slice(-4)}</span>
-                                    <span className={`text-[10px] font-bold ${h.result.size === 'Big' ? 'text-yellow-400' : 'text-cyan-400'}`}>{h.result.size}</span>
-                                    <div className={`absolute bottom-0 left-0 w-full h-0.5 ${h.result.color === 'Green' ? 'bg-green-500' : h.result.color === 'Red' ? 'bg-red-500' : 'bg-purple-500'}`}></div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                {history.length === 0 && (
-                    <div className="text-center text-[8px] text-gray-700 font-mono py-1">NO SIGNALS RECORDED</div>
-                )}
+                    ) : (
+                        history.map((h, i) => (
+                           <div key={i} className="min-w-[70px] bg-[#0a0a0a] border border-white/10 rounded p-1.5 flex flex-col items-center shrink-0 relative overflow-hidden group">
+                               <div className={`absolute bottom-0 left-0 h-[2px] w-full ${h.result.color === 'Green' ? 'bg-green-500' : h.result.color === 'Red' ? 'bg-red-500' : 'bg-purple-500'}`}></div>
+                               <span className="text-[8px] text-gray-500 font-mono">{h.period.slice(-4)}</span>
+                               <span className={`text-xs font-bold ${h.result.size === 'Big' ? 'text-yellow-400' : 'text-cyan-400'}`}>{h.result.size}</span>
+                           </div> 
+                        ))
+                    )}
+                </div>
             </div>
         )}
+
       </div>
     </div>
   );

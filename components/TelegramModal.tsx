@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Shield, Lock, ChevronRight, Fingerprint, Loader2, AlertTriangle, Send, CheckCircle2, Power, User } from 'lucide-react';
+import { Shield, ChevronRight, Fingerprint, Loader2, AlertTriangle, Send, CheckCircle2, Power, ScanLine, UserCheck } from 'lucide-react';
 
 interface TelegramModalProps {
   onVerify: () => void;
@@ -27,7 +27,7 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState('');
-  const [isExiting, setIsExiting] = useState(false); // New state for exit animation
+  const [isExiting, setIsExiting] = useState(false);
 
   const handleJoin = () => {
     const link = channelLink || '#';
@@ -36,27 +36,24 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({
   };
 
   const triggerSuccess = () => {
-      setStatusMessage('ACCESS GRANTED');
+      setStatusMessage('IDENTITY CONFIRMED');
       setIsChecking(false);
-      // Wait a moment to show success state, then trigger exit animation
       setTimeout(() => {
           setIsExiting(true);
-          // Wait for animation to finish before unmounting
           setTimeout(() => {
               onVerify();
-          }, 500); 
-      }, 800);
+          }, 600); 
+      }, 1000);
   };
 
   const checkMembershipReal = async () => {
     if (!botToken || !channelChatId || !telegramUserId) {
-      setError('CONFIG ERROR');
+      setError('CONFIG_MISSING_ABORT');
       setIsChecking(false);
       return;
     }
 
     try {
-      // Use AllOrigins Proxy to bypass CORS for client-side Telegram API calls
       const telegramUrl = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${channelChatId}&user_id=${telegramUserId}`;
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(telegramUrl)}`;
 
@@ -70,12 +67,11 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({
             if (['creator', 'administrator', 'member', 'restricted'].includes(status)) {
                triggerSuccess();
             } else {
-               setError('USER NOT FOUND IN CHANNEL');
+               setError('SUBJECT_NOT_FOUND_IN_CHANNEL');
                setIsChecking(false);
             }
           } else {
-             console.error("Telegram API Error:", tgData);
-             setError('CHANNEL ID/BOT ERROR');
+             setError('API_GATEWAY_ERROR');
              setIsChecking(false);
           }
       } else {
@@ -83,7 +79,7 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({
       }
     } catch (err) {
       console.error(err);
-      setError('NETWORK CONNECTION ERROR');
+      setError('NETWORK_UPLINK_FAILED');
       setIsChecking(false);
     }
   };
@@ -93,137 +89,135 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({
     
     setIsChecking(true);
     setError('');
-    setStatusMessage('SCANNING BIOMETRICS...');
+    setStatusMessage('SCANNING_BIOMETRICS...');
 
     if (strictMode) {
        checkMembershipReal();
     } else {
       setTimeout(() => {
         triggerSuccess();
-      }, 1500);
+      }, 2000);
     }
   };
 
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#050505]/95 backdrop-blur-md transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
-      {/* Holographic Card Frame with Dynamic Animation Class */}
-      <div className={`relative w-full max-w-sm overflow-hidden rounded-[20px] bg-[#0a0a0a] border border-gray-800 shadow-[0_0_50px_rgba(0,0,0,0.8)] ${isExiting ? 'animate-fade-out-up' : 'animate-fade-in-up'}`}>
-        
-        {/* Animated Top Scanline */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-scan opacity-70 z-20"></div>
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl transition-all duration-700 ${isExiting ? 'scale-110 opacity-0 blur-lg' : 'scale-100 opacity-100'}`}>
+      
+      <div className="absolute inset-0 bg-cyber-grid opacity-20 pointer-events-none animate-pulse"></div>
 
-        {/* Header Section */}
-        <div className="relative p-5 text-center bg-gradient-to-b from-gray-900 to-black border-b border-gray-800">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-            
-            <div className="flex flex-col items-center">
-                 <div className="w-16 h-16 rounded-full border-2 border-cyan-500/30 p-1 mb-2 animate-profile-glow transition-transform duration-300 hover:scale-110">
+      {/* Holographic Card */}
+      <div className="relative w-full max-w-sm overflow-hidden bg-[#0a0b10] border border-[#00f3ff]/30 shadow-[0_0_50px_rgba(0,243,255,0.15)] clip-path-polygon">
+        
+        {/* Corner Accents */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#00f3ff]"></div>
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#00f3ff]"></div>
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#00f3ff]"></div>
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#00f3ff]"></div>
+
+        {/* Scan Line */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-[#00f3ff] shadow-[0_0_20px_#00f3ff] animate-[scan_2s_linear_infinite] opacity-50 z-20"></div>
+
+        <div className="p-6 relative z-10">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6 border-b border-[#00f3ff]/20 pb-4">
+                <div className="w-14 h-14 rounded-md border border-[#00f3ff]/50 p-1 relative overflow-hidden group">
                      {telegramPhoto ? (
-                         <img src={telegramPhoto} alt="User" className="w-full h-full rounded-full object-cover" />
+                         <img src={telegramPhoto} alt="User" className="w-full h-full object-cover rounded-sm grayscale group-hover:grayscale-0 transition-all" />
                      ) : (
-                         <div className="w-full h-full rounded-full bg-cyan-950 flex items-center justify-center">
-                             <User className="w-6 h-6 text-cyan-500" />
+                         <div className="w-full h-full bg-[#00f3ff]/10 flex items-center justify-center">
+                             <ScanLine className="w-6 h-6 text-[#00f3ff]" />
                          </div>
                      )}
-                 </div>
-                 <h2 className="text-base font-bold text-white font-orbitron tracking-wide">{telegramName || 'UNKNOWN USER'}</h2>
-                 <p className="text-[9px] font-mono text-cyan-500/60 uppercase tracking-widest mt-0.5">ID: {telegramUserId || '---'}</p>
-            </div>
-        </div>
-
-        {/* Content Section */}
-        <div className="p-5 relative bg-black/80 space-y-3">
-            
-            {/* Step 1: Join (Uplink) */}
-            <button
-              onClick={handleJoin}
-              className={`w-full group relative overflow-hidden rounded-xl border transition-all duration-300 transform active:scale-95 mb-0 z-10
-                ${!hasClickedJoin 
-                    ? 'bg-blue-950/20 border-blue-500/30 hover:border-blue-400 hover:bg-blue-900/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
-                    : 'bg-green-950/20 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
-                }
-              `}
-            >
-                <div className="relative z-10 px-3 py-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 ${!hasClickedJoin ? 'bg-blue-600/20 text-blue-400' : 'bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.8)] scale-110'}`}>
-                            {!hasClickedJoin ? <Send className="w-4 h-4 -rotate-45 ml-0.5" /> : <CheckCircle2 className="w-5 h-5" />}
-                        </div>
-                        <div className="text-left">
-                            <div className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${!hasClickedJoin ? 'text-blue-100' : 'text-green-400'}`}>
-                                {hasClickedJoin ? 'Uplink Established' : 'Initialize Uplink'}
-                            </div>
-                            <div className="text-[8px] text-gray-500 font-mono mt-0.5">
-                                {hasClickedJoin ? 'Connection Stable' : 'Target: Official Channel'}
-                            </div>
-                        </div>
-                    </div>
-                    {!hasClickedJoin && <ChevronRight className="w-3.5 h-3.5 text-blue-500 animate-pulse"/>}
+                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#00f3ff] shadow-[0_0_10px_#00f3ff]"></div>
                 </div>
-                {!hasClickedJoin && <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>}
-            </button>
-
-            {/* Connecting Power Line */}
-            <div className="flex justify-center -my-2 relative z-0">
-                <div className={`w-0.5 h-6 transition-all duration-700 ${hasClickedJoin ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : 'bg-gray-800'}`}></div>
+                <div>
+                     <h2 className="text-lg font-bold text-white font-orbitron tracking-wider glitch-text" data-text={telegramName || 'UNKNOWN'}>
+                        {telegramName || 'UNKNOWN AGENT'}
+                     </h2>
+                     <p className="text-[10px] font-mono text-[#00f3ff]/70 tracking-[0.2em] mt-1">ID: {telegramUserId || 'XXXX-XXXX'}</p>
+                </div>
             </div>
 
-            {/* Step 2: Verify (Auth) */}
-            <button
-              onClick={handleVerify}
-              disabled={!hasClickedJoin || isChecking}
-              className={`w-full group relative overflow-hidden rounded-xl border transition-all duration-300 z-10 transform active:scale-95
-                ${!hasClickedJoin
-                    ? 'bg-gray-900/50 border-gray-800 grayscale opacity-40 cursor-not-allowed' 
-                    : 'bg-cyan-950/20 border-cyan-500/50 hover:bg-cyan-900/30 hover:border-cyan-400 shadow-[0_0_25px_rgba(8,145,178,0.2)] cursor-pointer'
-                }
-              `}
-            >
-                 <div className="relative z-10 px-3 py-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-500 
-                            ${!hasClickedJoin 
-                                ? 'bg-gray-800 text-gray-600' 
-                                : isChecking ? 'bg-cyan-500/20 text-cyan-400' : 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.8)]'
-                            }`}>
-                             {isChecking ? <Loader2 className="w-4 h-4 animate-spin"/> : <Fingerprint className="w-5 h-5"/>}
-                        </div>
-                        <div className="text-left">
-                            <div className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${!hasClickedJoin ? 'text-gray-500' : 'text-cyan-100'}`}>
-                                {isChecking ? 'Verifying...' : 'Authenticate'}
+            {/* Actions */}
+            <div className="space-y-4">
+                
+                {/* Step 1 */}
+                <button
+                  onClick={handleJoin}
+                  className={`w-full group relative overflow-hidden p-4 border transition-all duration-300
+                    ${!hasClickedJoin 
+                        ? 'bg-[#00f3ff]/5 border-[#00f3ff]/30 hover:bg-[#00f3ff]/10 hover:border-[#00f3ff]' 
+                        : 'bg-green-500/10 border-green-500/50'
+                    }
+                  `}
+                >
+                    <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded ${hasClickedJoin ? 'bg-green-500 text-black' : 'bg-[#00f3ff]/20 text-[#00f3ff]'}`}>
+                                {hasClickedJoin ? <CheckCircle2 className="w-4 h-4"/> : <Send className="w-4 h-4 -rotate-45"/>}
                             </div>
-                            <div className="text-[8px] text-gray-600 font-mono mt-0.5">
-                                {!hasClickedJoin ? 'Waiting for Uplink...' : statusMessage || 'Ready to Scan'}
+                            <div className="text-left">
+                                <div className="text-[10px] text-gray-400 font-mono tracking-wider">PROTOCOL 01</div>
+                                <div className={`text-xs font-bold font-orbitron ${hasClickedJoin ? 'text-green-400' : 'text-white'}`}>
+                                    {hasClickedJoin ? 'UPLINK ESTABLISHED' : 'JOIN SECURE CHANNEL'}
+                                </div>
                             </div>
                         </div>
+                        {!hasClickedJoin && <ChevronRight className="w-4 h-4 text-[#00f3ff] animate-pulse"/>}
+                    </div>
+                </button>
+
+                {/* Connection Line */}
+                <div className="h-4 w-0.5 bg-[#00f3ff]/30 mx-auto"></div>
+
+                {/* Step 2 */}
+                <button
+                  onClick={handleVerify}
+                  disabled={!hasClickedJoin || isChecking}
+                  className={`w-full group relative overflow-hidden p-4 border transition-all duration-300
+                    ${!hasClickedJoin
+                        ? 'bg-gray-900 border-gray-800 opacity-50 cursor-not-allowed' 
+                        : 'bg-[#00f3ff]/10 border-[#00f3ff]/50 hover:bg-[#00f3ff]/20 hover:shadow-[0_0_20px_rgba(0,243,255,0.2)]'
+                    }
+                  `}
+                >
+                     <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded ${isChecking ? 'text-[#00f3ff] animate-spin' : 'text-[#00f3ff] bg-[#00f3ff]/20'}`}>
+                                 {isChecking ? <Loader2 className="w-4 h-4"/> : <Fingerprint className="w-4 h-4"/>}
+                            </div>
+                            <div className="text-left">
+                                <div className="text-[10px] text-gray-400 font-mono tracking-wider">PROTOCOL 02</div>
+                                <div className="text-xs font-bold text-white font-orbitron">
+                                    {isChecking ? 'DECRYPTING...' : 'VERIFY ACCESS'}
+                                </div>
+                            </div>
+                        </div>
+                        {isChecking && <span className="text-[8px] font-mono text-[#00f3ff] animate-pulse">{statusMessage}</span>}
                     </div>
                     
-                    {/* Status Indicator */}
-                    <div className={`w-1.5 h-1.5 rounded-full ${!hasClickedJoin ? 'bg-red-900' : 'bg-cyan-500 animate-ping'}`}></div>
-                </div>
-                
-                {/* Active Scan Effect */}
-                {hasClickedJoin && !isChecking && (
-                    <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent skew-x-12 animate-shine"></div>
-                )}
-            </button>
+                    {/* Progress Bar Animation */}
+                    {isChecking && (
+                        <div className="absolute bottom-0 left-0 h-0.5 bg-[#00f3ff] animate-[load_2s_ease-in-out_infinite] w-full shadow-[0_0_10px_#00f3ff]"></div>
+                    )}
+                </button>
 
-             {/* Error Message */}
-             {error && (
-                <div className="mt-2 flex items-center justify-center space-x-2 text-red-500 bg-red-950/30 p-1.5 rounded-lg border border-red-900/50 animate-pulse">
-                    <AlertTriangle className="w-2.5 h-2.5" />
-                    <span className="text-[9px] font-bold tracking-wider">{error}</span>
-                </div>
-            )}
-        </div>
-        
-        {/* Footer */}
-        <div className="p-2 bg-black border-t border-gray-800 text-center flex justify-between items-center px-4">
-            <div className="flex items-center space-x-1">
-                <Power className={`w-2.5 h-2.5 ${hasClickedJoin ? 'text-green-500' : 'text-red-500'}`} />
-                <span className="text-[7px] text-gray-500 font-mono">SYSTEM {hasClickedJoin ? 'ONLINE' : 'OFFLINE'}</span>
+                 {error && (
+                    <div className="flex items-center gap-2 text-[#ff003c] bg-[#ff003c]/10 p-2 border border-[#ff003c]/30">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span className="text-[9px] font-mono font-bold tracking-widest">{error}</span>
+                    </div>
+                )}
             </div>
-            <span className="text-[7px] text-gray-700 font-mono">SECURE ACCESS</span>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-[#00f3ff]/5 p-2 border-t border-[#00f3ff]/20 flex justify-between items-center px-4">
+             <div className="flex items-center gap-1">
+                 <div className="w-1.5 h-1.5 bg-[#00f3ff] rounded-full animate-ping"></div>
+                 <span className="text-[7px] font-mono text-[#00f3ff]">SYSTEM_ONLINE</span>
+             </div>
+             <span className="text-[7px] font-mono text-gray-500">ENCRYPTED_V2.0</span>
         </div>
       </div>
     </div>

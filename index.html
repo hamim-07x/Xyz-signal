@@ -7,70 +7,161 @@
     <title>X-Hunter Prime</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- AD SDK -->
     <script src='//libtl.com/sdk.js' data-zone='10174286' data-sdk='show_10174286'></script>
 
     <style>
+      :root {
+        --neon-cyan: #00f3ff;
+        --neon-purple: #bc13fe;
+        --neon-red: #ff003c;
+        --neon-gold: #ffd700;
+        --bg-dark: #050505;
+        --glass-border: rgba(255, 255, 255, 0.1);
+      }
+      
       body {
-        background-color: #000000;
+        background-color: var(--bg-dark);
         color: #fff;
         font-family: 'Rajdhani', sans-serif;
-        overflow: hidden; /* Prevent scrolling on body, handle in app */
+        overflow: hidden;
         -webkit-tap-highlight-color: transparent;
       }
       .font-mono { font-family: 'JetBrains Mono', monospace; }
       .font-orbitron { font-family: 'Orbitron', sans-serif; }
       
-      /* --- CRT & SCANLINE EFFECTS --- */
-      .scanlines {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
-        background-size: 100% 4px;
-        z-index: 50;
-        pointer-events: none;
-        opacity: 0.3;
+      /* --- CYBERPUNK BACKGROUNDS --- */
+      .bg-cyber-grid {
+        background-image: 
+          linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+        background-size: 30px 30px;
       }
-      .scan-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-        background-size: 100% 2px, 3px 100%;
-        z-index: 49;
-        pointer-events: none;
-      }
-      
-      /* --- ANIMATIONS --- */
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
-      @keyframes pulse { 50% { opacity: .5; } }
-      
-      /* Entrance Animation */
-      .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      @keyframes fadeInUp { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-      /* Exit Animation */
-      .animate-fade-out-up { animation: fadeOutUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      @keyframes fadeOutUp { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-40px) scale(0.95); } }
+      /* --- GLITCH EFFECT --- */
+      .glitch-text {
+        position: relative;
+      }
+      .glitch-text::before, .glitch-text::after {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-dark);
+      }
+      .glitch-text::before {
+        left: 2px;
+        text-shadow: -1px 0 var(--neon-red);
+        clip: rect(24px, 550px, 90px, 0);
+        animation: glitch-anim-2 3s infinite linear alternate-reverse;
+      }
+      .glitch-text::after {
+        left: -2px;
+        text-shadow: -1px 0 var(--neon-cyan);
+        clip: rect(85px, 550px, 140px, 0);
+        animation: glitch-anim 2.5s infinite linear alternate-reverse;
+      }
+
+      @keyframes glitch-anim {
+        0% { clip: rect(11px, 9999px, 83px, 0); }
+        20% { clip: rect(84px, 9999px, 2px, 0); }
+        40% { clip: rect(24px, 9999px, 80px, 0); }
+        60% { clip: rect(56px, 9999px, 20px, 0); }
+        80% { clip: rect(9px, 9999px, 46px, 0); }
+        100% { clip: rect(66px, 9999px, 33px, 0); }
+      }
+      @keyframes glitch-anim-2 {
+        0% { clip: rect(65px, 9999px, 92px, 0); }
+        20% { clip: rect(3px, 9999px, 3px, 0); }
+        40% { clip: rect(45px, 9999px, 63px, 0); }
+        60% { clip: rect(10px, 9999px, 86px, 0); }
+        80% { clip: rect(26px, 9999px, 11px, 0); }
+        100% { clip: rect(88px, 9999px, 5px, 0); }
+      }
+
+      /* --- NEON BORDERS & GLOWS --- */
+      .cyber-card {
+        background: rgba(10, 10, 15, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 243, 255, 0.1);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+      }
+      .cyber-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        opacity: 0.5;
+      }
+      
+      .cyber-input {
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+      }
+      .cyber-input:focus {
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+      }
+
+      .btn-cyber {
+        background: linear-gradient(45deg, #0b1c2c, #0f2e44);
+        border: 1px solid var(--neon-cyan);
+        color: var(--neon-cyan);
+        text-shadow: 0 0 5px var(--neon-cyan);
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-cyber:active {
+        transform: scale(0.95);
+      }
+      .btn-cyber::after {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%; width: 200%; height: 200%;
+        background: linear-gradient(to bottom, transparent, rgba(0,243,255,0.1), transparent);
+        transform: rotate(45deg);
+        animation: shine 3s infinite;
+      }
+      
+      .btn-cyber-gold {
+        background: linear-gradient(45deg, #2c240b, #44380f);
+        border: 1px solid var(--neon-gold);
+        color: var(--neon-gold);
+        text-shadow: 0 0 5px var(--neon-gold);
+      }
+
+      @keyframes shine {
+        0% { transform: translateX(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) rotate(45deg); }
+      }
+
+      /* --- ANIMATIONS --- */
+      @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes spin-reverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+      
+      .animate-spin-slow { animation: spin-slow 10s linear infinite; }
+      .animate-spin-reverse { animation: spin-reverse 8s linear infinite; }
+      
+      .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
       .animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
       @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-      /* Button Click Effect Global */
-      button:active {
-        transform: scale(0.95);
-        transition: transform 0.1s;
-      }
-
-      /* --- SCROLLBAR --- */
-      .custom-scrollbar::-webkit-scrollbar { height: 3px; width: 3px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+      /* --- CUSTOM SCROLLBAR --- */
+      .custom-scrollbar::-webkit-scrollbar { width: 2px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
       .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
-      /* --- GLOWS --- */
-      .text-shadow-glow { text-shadow: 0 0 10px rgba(6,182,212,0.5); }
     </style>
   <script type="importmap">
 {

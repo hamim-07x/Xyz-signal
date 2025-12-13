@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Loader2, CreditCard, Gem, Crown, Sparkles, Lock, Play, XCircle, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Loader2, CreditCard, Gem, Crown, Sparkles, Lock, Play, XCircle, ArrowRight, Key, AlertOctagon } from 'lucide-react';
 import { redeemKeyOnServer, checkAdEligibility, grantAdReward } from '../lib/firebase';
 import { GlobalSettings } from '../types';
 
@@ -12,7 +12,6 @@ interface LockedViewProps {
   settings?: GlobalSettings;
 }
 
-// Declare the global ad function
 declare global {
     interface Window {
         show_10174286: () => Promise<any>;
@@ -29,8 +28,7 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
   const [adCount, setAdCount] = useState(0);
   const [isAdLoading, setIsAdLoading] = useState(false);
   const [adCooldown, setAdCooldown] = useState(0);
-  const [adError, setAdError] = useState('');
-  const [adStatus, setAdStatus] = useState('IDLE'); // IDLE, WATCHING, COOLING
+  const [adStatus, setAdStatus] = useState('IDLE');
 
   const handleUnlock = async () => {
     if (!inputKey.trim()) return;
@@ -48,12 +46,11 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
              setLoading(false);
              onSuccess(newExpiry);
         } else {
-             setError(result.message || 'INVALID KEY');
+             setError(result.message || 'INVALID_ENCRYPTION_KEY');
              setLoading(false);
         }
     } catch (err) {
-        console.error(err);
-        setError('SERVER ERROR');
+        setError('SERVER_UNREACHABLE');
         setLoading(false);
     }
   };
@@ -69,7 +66,6 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
     }
   };
 
-  // --- AD LOGIC ---
   const handleOpenAdModal = async () => {
       const limit = settings?.dailyAdLimit || 1;
       const eligible = await checkAdEligibility(telegramId, limit);
@@ -77,31 +73,19 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
       if(eligible) {
           setIsAdModalOpen(true);
           setAdCount(0);
-          setAdError('');
           setAdStatus('IDLE');
       } else {
-          setError(`DAILY LIMIT REACHED (${limit}/${limit})`);
+          setError(`LIMIT_REACHED_${limit}/${limit}`);
       }
   };
 
   const invokeAd = (): Promise<void> => {
       return new Promise((resolve) => {
-          // Check if function exists (loaded from index.html)
           if (typeof window.show_10174286 === 'function') {
               window.show_10174286()
-                  .then(() => {
-                      console.log("Ad finished");
-                      resolve();
-                  })
-                  .catch((e) => {
-                      console.warn("Ad skipped or failed", e);
-                      // Even if fails (e.g. adblock), we resolve to let user proceed in this logic
-                      // Or you can reject to force them to disable adblock
-                      resolve(); 
-                  });
+                  .then(() => { resolve(); })
+                  .catch(() => { resolve(); });
           } else {
-              console.warn("Ad Script not loaded yet.");
-              // Fallback simulation
               setTimeout(resolve, 3000); 
           }
       });
@@ -110,18 +94,14 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
   const watchNextAd = async () => {
       setAdStatus('WATCHING');
       setIsAdLoading(true);
-      
-      // Call the Ad SDK
       await invokeAd();
-
-      // After Ad is done
       setIsAdLoading(false);
       startCooldown();
   };
 
   const startCooldown = () => {
       setAdStatus('COOLING');
-      setAdCooldown(10); // 10 Seconds cooldown between ads
+      setAdCooldown(10);
       
       const timer = setInterval(() => {
           setAdCooldown((prev) => {
@@ -142,9 +122,8 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
       setAdStatus('IDLE');
 
       if (newCount >= target) {
-          // Grant Reward
           setIsAdModalOpen(false);
-          setLoading(true); // Show main loading to indicate processing
+          setLoading(true);
           const hours = settings?.adRewardHours || 1;
           const durationMs = await grantAdReward(telegramId, hours);
           
@@ -154,167 +133,140 @@ export const LockedView: React.FC<LockedViewProps> = ({ telegramId, onSuccess, c
               localStorage.setItem(`xhunter_license_${telegramId}`, newExpiry.toString());
               onSuccess(newExpiry);
           } else {
-              setError("REWARD FAILED");
+              setError("REWARD_GENERATION_FAILED");
               setLoading(false);
           }
       }
   };
 
   return (
-    <div className="w-full relative min-h-[350px] flex flex-col items-center justify-center p-2 animate-fade-in-up">
+    <div className="w-full min-h-[400px] flex items-center justify-center p-4 relative animate-fade-in-up">
       
-      {/* Background Decor */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-black to-slate-950 rounded-2xl overflow-hidden border border-slate-800">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-yellow-600/10 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-600/10 rounded-full blur-3xl"></div>
-      </div>
+      {/* Container with Hexagon Background */}
+      <div className="w-full max-w-[320px] bg-black/80 backdrop-blur-xl border border-[#ffd700]/20 rounded-2xl p-6 relative overflow-hidden shadow-[0_0_50px_rgba(255,215,0,0.1)]">
+          
+          {/* Animated Background Elements */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#ffd700] to-transparent animate-[scan_3s_linear_infinite] opacity-50"></div>
+          <div className="absolute -right-20 -top-20 w-40 h-40 bg-[#ffd700]/10 rounded-full blur-3xl"></div>
 
-      {/* Content Container */}
-      <div className="relative z-10 w-full max-w-[280px] flex flex-col items-center">
-        
-        {/* VIP Badge */}
-        <div className="flex items-center gap-2 mb-6 bg-slate-900/80 border border-slate-700 rounded-full px-4 py-1.5 shadow-lg">
-            <Crown className="w-3.5 h-3.5 text-yellow-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-slate-300 tracking-[0.2em] font-orbitron">PREMIUM ACCESS</span>
-        </div>
+          {/* Header */}
+          <div className="text-center mb-8 relative">
+              <div className="inline-flex items-center justify-center p-3 rounded-full border border-[#ffd700]/50 bg-[#ffd700]/10 mb-3 shadow-[0_0_15px_rgba(255,215,0,0.3)] animate-pulse">
+                  <Crown className="w-6 h-6 text-[#ffd700]" />
+              </div>
+              <h2 className="text-xl font-bold font-orbitron text-white tracking-[0.2em]">VIP ACCESS</h2>
+              <p className="text-[10px] font-mono text-[#ffd700] mt-1 tracking-widest">SYSTEM LOCKED // REQUIRES KEY</p>
+          </div>
 
-        {/* Status Icon */}
-        <div className="relative mb-6">
-            <div className="absolute inset-0 bg-yellow-500/20 rounded-full blur-xl animate-pulse"></div>
-            <div className="w-20 h-20 bg-gradient-to-br from-slate-800 to-black rounded-2xl border border-slate-700 flex items-center justify-center shadow-2xl transform rotate-45">
-                <div className="transform -rotate-45">
-                    <ShieldCheck className="w-8 h-8 text-yellow-500" />
-                </div>
-            </div>
-        </div>
-
-        {/* Input Section */}
-        <div className="w-full space-y-4">
-            <div className="relative">
-                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5 block ml-1">License Key</label>
-                <div className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600/50 to-slate-600/50 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-                    <input 
-                        type="text" 
-                        value={inputKey}
-                        onChange={(e) => setInputKey(e.target.value.toUpperCase())}
-                        placeholder="XXXX-XXXX-XXXX"
-                        className="relative w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-center text-yellow-100 font-mono text-sm tracking-[0.2em] focus:outline-none focus:border-yellow-500/50 transition-all uppercase placeholder-slate-800 shadow-inner"
-                    />
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
-                </div>
-            </div>
-
-            {error && (
-                <div className="text-center text-red-400 text-[9px] font-bold bg-red-950/20 py-2 rounded-lg border border-red-500/20 animate-pulse tracking-wide flex items-center justify-center gap-2">
-                   <XCircle className="w-3 h-3"/> {error}
-                </div>
-            )}
-
-            {/* Buttons */}
-            <div className="space-y-2.5 pt-2">
-                <button
-                    onClick={handleUnlock}
-                    disabled={loading || !inputKey}
-                    className="w-full py-3.5 bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 text-black font-bold rounded-xl tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2 relative overflow-hidden group border-t border-yellow-400/30"
-                >
-                    <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 group-hover:animate-shine"></div>
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <ShieldCheck className="w-4 h-4"/>}
-                    <span className="text-xs">ACTIVATE LICENSE</span>
-                </button>
-
-                <div className="grid grid-cols-2 gap-2">
-                    <button
-                        onClick={handleOpenAdModal}
-                        className="py-3 bg-slate-900 hover:bg-slate-800 text-yellow-500 font-bold rounded-xl tracking-wide border border-yellow-900/30 active:scale-95 transition-all flex items-center justify-center gap-2 group"
-                    >
-                        <Gem className="w-3.5 h-3.5 group-hover:animate-bounce" />
-                        <span className="text-[10px]">SPONSORED</span>
-                    </button>
-                    <button
-                        onClick={handleContact}
-                        className="py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-xl tracking-wide border border-slate-800 active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                        <CreditCard className="w-3.5 h-3.5" />
-                        <span className="text-[10px]">BUY KEY</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-      </div>
-
-      {/* --- ADS MODAL (PREMIUM) --- */}
-      {isAdModalOpen && (
-          <div className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center p-6 backdrop-blur-md animate-fade-in-up">
-              <div className="w-full max-w-sm bg-[#0b0f19] border border-yellow-500/30 rounded-2xl p-6 relative shadow-[0_0_60px_rgba(234,179,8,0.15)] overflow-hidden">
-                  
-                  {/* Modal Background FX */}
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent"></div>
-                  <div className="absolute -right-10 -top-10 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl"></div>
-
-                  <div className="text-center mb-8 relative z-10">
-                      <div className="w-12 h-12 bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3 border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-                          <Sparkles className="w-6 h-6 text-yellow-500" />
+          {/* Key Input */}
+          <div className="space-y-5 relative z-10">
+              <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[#ffd700] to-[#b8860b] rounded-lg blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+                  <div className="relative bg-black border border-[#ffd700]/30 rounded-lg flex items-center p-1">
+                      <div className="pl-3">
+                          <Key className="w-4 h-4 text-[#ffd700]/70" />
                       </div>
-                      <h3 className="text-lg font-bold text-white font-orbitron tracking-widest">SPONSORED UNLOCK</h3>
-                      <p className="text-[10px] text-slate-400 mt-2 font-mono uppercase tracking-wide">
-                          Complete tasks to bypass security
+                      <input 
+                          type="text" 
+                          value={inputKey}
+                          onChange={(e) => setInputKey(e.target.value.toUpperCase())}
+                          placeholder="XXXX-XXXX-XXXX"
+                          className="w-full bg-transparent border-none text-center text-[#ffd700] font-mono text-sm font-bold tracking-[0.15em] focus:outline-none p-3 placeholder-[#ffd700]/20"
+                      />
+                  </div>
+              </div>
+
+              {error && (
+                <div className="flex items-center justify-center gap-2 text-[#ff003c] text-[10px] font-bold font-mono bg-[#ff003c]/10 py-2 rounded border border-[#ff003c]/30 animate-pulse">
+                   <AlertOctagon className="w-3 h-3"/> {error}
+                </div>
+              )}
+
+              {/* Main Unlock Button */}
+              <button
+                  onClick={handleUnlock}
+                  disabled={loading || !inputKey}
+                  className="w-full py-4 bg-gradient-to-r from-[#ffd700] via-[#e5c100] to-[#ffd700] text-black font-bold font-orbitron text-sm tracking-widest rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2 relative overflow-hidden group"
+              >
+                  <div className="absolute top-0 -left-[100%] w-full h-full bg-white/30 skew-x-12 group-hover:animate-[shine_1s_infinite]"></div>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <ShieldCheck className="w-4 h-4"/>}
+                  <span>AUTHENTICATE</span>
+              </button>
+
+              <div className="flex items-center justify-between gap-3 pt-2">
+                  <button
+                      onClick={handleOpenAdModal}
+                      className="flex-1 py-3 bg-[#1a1a1a] hover:bg-[#252525] border border-[#ffd700]/20 hover:border-[#ffd700]/50 rounded-lg text-[#ffd700] text-[10px] font-bold tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
+                  >
+                      <Gem className="w-3 h-3" /> SPONSORED
+                  </button>
+                  <button
+                      onClick={handleContact}
+                      className="flex-1 py-3 bg-[#1a1a1a] hover:bg-[#252525] border border-blue-500/20 hover:border-blue-500/50 rounded-lg text-blue-400 text-[10px] font-bold tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
+                  >
+                      <CreditCard className="w-3 h-3" /> PURCHASE
+                  </button>
+              </div>
+          </div>
+      </div>
+
+      {/* --- ADS MODAL (CYBER STYLE) --- */}
+      {isAdModalOpen && (
+          <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md animate-fade-in-up">
+              <div className="w-full max-w-sm bg-black border border-[#ffd700]/40 rounded-xl p-6 relative shadow-[0_0_100px_rgba(255,215,0,0.2)] overflow-hidden">
+                  
+                  {/* Holo Grid */}
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+
+                  <div className="text-center mb-6 relative z-10">
+                      <Sparkles className="w-8 h-8 text-[#ffd700] mx-auto mb-2 animate-spin-slow" />
+                      <h3 className="text-lg font-bold text-white font-orbitron tracking-widest">DECRYPTING DATA</h3>
+                      <p className="text-[9px] text-gray-400 mt-2 font-mono uppercase">
+                          Task completion required for access grant
                       </p>
                   </div>
 
-                  {/* Enhanced Progress Bar */}
+                  {/* Progress Bar */}
                   <div className="mb-6 relative z-10">
-                      <div className="flex justify-between text-[10px] font-bold text-yellow-500 mb-2 uppercase tracking-wider">
-                          <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> Processing</span>
+                      <div className="flex justify-between text-[10px] font-mono text-[#ffd700] mb-2">
+                          <span>PROGRESS</span>
                           <span>{Math.round((adCount / (settings?.adsTarget || 10)) * 100)}%</span>
                       </div>
-                      <div className="w-full bg-slate-900 rounded-full h-2.5 border border-slate-800 overflow-hidden relative shadow-inner">
+                      <div className="w-full h-2 bg-[#1a1a1a] rounded-full overflow-hidden border border-[#ffd700]/20">
                           <div 
-                             className="h-full bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.6)] transition-all duration-700 ease-out"
+                             className="h-full bg-[#ffd700] shadow-[0_0_10px_#ffd700] transition-all duration-500"
                              style={{ width: `${(adCount / (settings?.adsTarget || 10)) * 100}%` }}
                           ></div>
                       </div>
-                      <div className="flex justify-between mt-2">
-                           <span className="text-[9px] text-slate-600 font-mono">TASK_ID: #{Math.floor(Math.random() * 9999)}</span>
-                           <span className="text-[9px] text-slate-400 font-mono">{adCount}/{settings?.adsTarget || 10} COMPLETED</span>
+                      <div className="text-right text-[8px] text-gray-500 font-mono mt-1">
+                          PACKET {adCount}/{settings?.adsTarget || 10}
                       </div>
                   </div>
 
                   <div className="space-y-3 relative z-10">
                       {adStatus === 'COOLING' ? (
-                          <div className="w-full py-5 bg-slate-900/50 rounded-xl border border-yellow-500/20 flex flex-col items-center justify-center relative overflow-hidden">
-                              <div className="text-3xl font-bold text-white font-mono tracking-widest drop-shadow-md">
-                                  {adCooldown}<span className="text-sm text-slate-500">s</span>
+                          <div className="w-full py-6 border border-[#ffd700]/20 bg-[#ffd700]/5 rounded-lg flex flex-col items-center justify-center">
+                              <div className="text-3xl font-bold text-white font-mono tracking-widest">
+                                  {adCooldown}<span className="text-sm text-gray-500">s</span>
                               </div>
-                              <span className="text-[9px] text-yellow-500/80 font-bold tracking-[0.2em] mt-1 uppercase animate-pulse">Synchronizing...</span>
+                              <span className="text-[8px] text-[#ffd700] font-mono tracking-[0.2em] mt-1 animate-pulse">ESTABLISHING LINK...</span>
                           </div>
                       ) : (
                           <button 
                             onClick={watchNextAd}
                             disabled={isAdLoading}
-                            className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-xl tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 relative overflow-hidden group"
+                            className="w-full py-4 bg-[#ffd700] hover:bg-[#ffed4a] text-black font-bold font-orbitron tracking-widest rounded-lg shadow-[0_0_30px_rgba(255,215,0,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2"
                           >
-                              {isAdLoading ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin"/>
-                                    <span>CONNECTING SERVER...</span>
-                                  </>
-                              ) : (
-                                  <>
-                                    <Play className="w-4 h-4 fill-black"/>
-                                    <span>WATCH SPONSOR AD</span>
-                                    <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all"/>
-                                  </>
-                              )}
+                              {isAdLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Play className="w-4 h-4 fill-black"/>}
+                              <span>{isAdLoading ? 'PROCESSING...' : 'EXECUTE TASK'}</span>
                           </button>
                       )}
 
                       <button 
                         onClick={() => setIsAdModalOpen(false)}
-                        className="w-full py-2.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors tracking-widest uppercase font-bold"
+                        className="w-full py-2 text-[10px] text-gray-500 hover:text-white transition-colors tracking-widest font-mono border border-white/10 rounded"
                       >
-                          Abort Operation
+                          ABORT
                       </button>
                   </div>
               </div>
