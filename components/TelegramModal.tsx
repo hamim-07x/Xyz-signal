@@ -56,26 +56,34 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({
     }
 
     try {
+      // Use AllOrigins Proxy to bypass CORS for client-side Telegram API calls
       const telegramUrl = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${channelChatId}&user_id=${telegramUserId}`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(telegramUrl)}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(telegramUrl)}`;
 
       const response = await fetch(proxyUrl);
       const data = await response.json();
-
-      if (data.ok) {
-        const status = data.result.status;
-        if (['creator', 'administrator', 'member'].includes(status)) {
-           triggerSuccess();
-        } else {
-           setError('USER NOT FOUND');
-           setIsChecking(false);
-        }
+      
+      if (data.contents) {
+          const tgData = JSON.parse(data.contents);
+          if (tgData.ok) {
+            const status = tgData.result.status;
+            if (['creator', 'administrator', 'member', 'restricted'].includes(status)) {
+               triggerSuccess();
+            } else {
+               setError('USER NOT FOUND IN CHANNEL');
+               setIsChecking(false);
+            }
+          } else {
+             console.error("Telegram API Error:", tgData);
+             setError('CHANNEL ID/BOT ERROR');
+             setIsChecking(false);
+          }
       } else {
-        setError('API ERROR');
-        setIsChecking(false);
+          throw new Error("Proxy Error");
       }
     } catch (err) {
-      setError('NETWORK ERROR');
+      console.error(err);
+      setError('NETWORK CONNECTION ERROR');
       setIsChecking(false);
     }
   };

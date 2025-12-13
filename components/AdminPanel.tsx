@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, ShieldAlert, Key, Copy, Check, Save, ToggleLeft, ToggleRight, Trash2, Smartphone, Lock, Hash, Activity, Users, Timer, RefreshCw, Ban, UserCheck } from 'lucide-react';
+import { X, ShieldAlert, Key, Copy, Check, Save, ToggleLeft, ToggleRight, Trash2, Smartphone, Lock, Hash, Activity, Users, Timer, RefreshCw, Ban, UserCheck, PlayCircle, Clock } from 'lucide-react';
 import { LicenseKey, GlobalSettings, AdminPanelProps } from '../types';
 import { getRealUserCount, saveGlobalSettings, generateKeysOnServer, subscribeToKeys, deleteAllKeysOnServer, deleteSingleKeyOnServer, subscribeToAllUsers, toggleUserBanStatus } from '../lib/firebase';
 
@@ -32,7 +32,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
     strictMode: false,
     botToken: '',
     channelChatId: '',
-    adminImageUrl: ''
+    adminImageUrl: '',
+    adsTarget: 10,
+    adRewardHours: 1,
+    dailyAdLimit: 1
   });
   const [savedSettings, setSavedSettings] = useState(false);
   const [settingsError, setSettingsError] = useState('');
@@ -56,7 +59,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
       // Subscribe to Realtime Users
       const unsubscribeUsers = subscribeToAllUsers((users) => {
-          const sortedUsers = users.sort((a, b) => new Date(b.lastLogin).getTime() - new Date(a.lastLogin).getTime());
+          // Sort by lastLogin descending
+          const sortedUsers = users.sort((a, b) => {
+              const timeA = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+              const timeB = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+              return timeB - timeA;
+          });
           setUsersList(sortedUsers);
           setStats(prev => ({...prev, activeUsers: users.length}));
       });
@@ -73,7 +81,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
             strictMode: parsed.strictMode || false,
             botToken: parsed.botToken || '',
             channelChatId: parsed.channelChatId || '',
-            adminImageUrl: parsed.adminImageUrl || ''
+            adminImageUrl: parsed.adminImageUrl || '',
+            adsTarget: parsed.adsTarget || 10,
+            adRewardHours: parsed.adRewardHours || 1,
+            dailyAdLimit: parsed.dailyAdLimit || 1
           });
         } catch(e) {}
       }
@@ -87,7 +98,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
   const fetchRealStats = async () => {
       setLoadingStats(true);
-      // Data is mostly realtime now via subscriptions, but we keep this for manual refresh feel
       setTimeout(() => setLoadingStats(false), 500);
   };
 
@@ -104,11 +114,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
   const generateRandomKey = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+    
+    // Helper to generate a 4-char segment
+    const getSegment = () => {
+        let segment = '';
+        for (let i = 0; i < 4; i++) {
+            segment += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return segment;
+    };
+
+    // Generate 3 groups of 4 characters separated by hyphens
+    // Format: XXXX-XXXX-XXXX (e.g., G2YG-TWUG-T2DQ)
+    return `${getSegment()}-${getSegment()}-${getSegment()}`;
   };
 
   const handleGenerateKeys = async () => {
@@ -290,6 +308,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                              <div className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-2">
                                 <Users className="w-3 h-3"/> Active Users ({usersList.length})
                              </div>
+                             <div className="text-[8px] text-gray-600 font-mono bg-white/5 px-1.5 py-0.5 rounded">
+                                SORT: LATEST
+                             </div>
                         </div>
                         <div className="overflow-y-auto space-y-2 custom-scrollbar flex-1 pr-1">
                             {usersList.length > 0 ? (
@@ -312,6 +333,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                                                     {user.firstName} {user.isBanned && '(BANNED)'}
                                                 </span>
                                                 <span className="text-[8px] text-gray-500 font-mono">ID: {user.id}</span>
+                                                {user.lastLogin && (
+                                                    <span className="text-[7px] text-gray-600 font-mono">
+                                                        {new Date(user.lastLogin).toLocaleDateString()} {new Date(user.lastLogin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         {/* Actions */}
@@ -443,6 +469,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
 
             {activeTab === 'settings' && (
                  <div className="space-y-4 animate-fade-in-up">
+                   
+                   {/* App Name */}
                    <div className="bg-[#0f0f0f] border border-white/5 rounded-xl p-3 shadow-lg">
                        <label className="text-[9px] text-gray-400 font-bold block mb-1.5 uppercase tracking-wide">App Name</label>
                        <div className="flex items-center bg-black border border-gray-700 rounded-lg px-2.5 py-2">
@@ -457,16 +485,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                        </div>
                    </div>
 
+                   {/* Strict Mode Toggle */}
                    <div className="flex items-center justify-between bg-[#0f0f0f] border border-red-900/30 rounded-xl p-3 shadow-lg">
                         <div>
                            <div className="text-[10px] text-red-400 font-bold uppercase flex items-center gap-1.5"><ShieldAlert className="w-3 h-3"/> Strict Mode</div>
-                           <div className="text-[8px] text-gray-500 mt-0.5 tracking-wide">REQUIRE API VERIFICATION</div>
+                           <div className="text-[8px] text-gray-500 mt-0.5 tracking-wide">REQUIRE CHANNEL MEMBERSHIP</div>
                         </div>
                         <button onClick={toggleStrictMode} className={`transition-colors duration-300 ${settings.strictMode ? 'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'text-gray-700'}`}>
                           {settings.strictMode ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
                         </button>
                    </div>
 
+                    {/* ADS CONFIGURATION */}
+                   <div className="bg-[#0f0f0f] p-3 rounded-xl border border-yellow-500/20 shadow-lg space-y-3">
+                        <div className="flex items-center gap-2 pb-2 border-b border-white/5 text-yellow-400 text-xs font-bold uppercase">
+                            <PlayCircle className="w-3 h-3"/> Free Unlock (Ads System)
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div>
+                                <label className="text-[8px] text-gray-500 uppercase font-bold block mb-1">Target Ads</label>
+                                <input 
+                                    type="number" 
+                                    value={settings.adsTarget} 
+                                    onChange={(e) => setSettings({...settings, adsTarget: parseInt(e.target.value) || 10})}
+                                    className="w-full bg-black border border-gray-700 rounded-lg p-1.5 text-center text-white text-[10px]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[8px] text-gray-500 uppercase font-bold block mb-1">Reward (Hours)</label>
+                                <input 
+                                    type="number" 
+                                    value={settings.adRewardHours} 
+                                    onChange={(e) => setSettings({...settings, adRewardHours: parseFloat(e.target.value) || 1})}
+                                    className="w-full bg-black border border-gray-700 rounded-lg p-1.5 text-center text-white text-[10px]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[8px] text-gray-500 uppercase font-bold block mb-1">Daily Limit</label>
+                                <input 
+                                    type="number" 
+                                    value={settings.dailyAdLimit} 
+                                    onChange={(e) => setSettings({...settings, dailyAdLimit: parseInt(e.target.value) || 1})}
+                                    className="w-full bg-black border border-gray-700 rounded-lg p-1.5 text-center text-white text-[10px]"
+                                />
+                            </div>
+                        </div>
+                   </div>
+
+                   {/* General Links */}
                    <div className="bg-[#0f0f0f] p-3 rounded-xl border border-white/5 space-y-3 shadow-lg">
                      <div>
                        <label className="text-[9px] text-gray-400 font-bold block mb-1.5 uppercase tracking-wide">Channel Link</label>
@@ -498,8 +564,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onClear
                                     value={settings.channelChatId || ''} 
                                     onChange={(e) => setSettings({...settings, channelChatId: e.target.value})}
                                     className="bg-black border border-red-900/40 rounded-lg p-2.5 text-white w-full text-[10px] font-mono focus:border-red-500"
-                                    placeholder="@channel or -100..."
+                                    placeholder="-100..."
                                 />
+                                <p className="text-[8px] text-gray-600 mt-1">* ID must start with -100 for channels</p>
                             </div>
                         </div>
                      )}

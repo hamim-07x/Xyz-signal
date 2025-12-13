@@ -48,6 +48,11 @@ export interface GlobalSettings {
   botToken?: string;   // For Real API Check
   channelChatId?: string; // For Real API Check
   adminImageUrl?: string;
+  
+  // Ad System Settings
+  adsTarget?: number;      // How many ads to watch (e.g., 10)
+  adRewardHours?: number;  // How many hours reward (e.g., 1)
+  dailyAdLimit?: number;   // How many times per day (e.g., 2)
 }
 
 export interface AdminPanelProps {

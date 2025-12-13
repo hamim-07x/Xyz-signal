@@ -137,7 +137,10 @@ export const subscribeToSettings = (callback: (settings: any) => void) => {
                 appName: 'X-HUNTER',
                 channelLink: '',
                 contactLink: '',
-                strictMode: false
+                strictMode: false,
+                adsTarget: 10,
+                adRewardHours: 1,
+                dailyAdLimit: 1
             });
         }
     });
@@ -182,6 +185,46 @@ export const redeemKeyOnServer = async (keyString: string, userId: number): Prom
     } catch (e) {
         console.error(e);
         return { success: false, message: "CONNECTION ERROR" };
+    }
+};
+
+// --- AD REWARD SYSTEM ---
+
+export const checkAdEligibility = async (userId: number, dailyLimit: number): Promise<boolean> => {
+    if (!db) return false;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const adRef = ref(db, `users/${userId}/ad_claims/${today}`);
+    
+    try {
+        const snapshot = await get(adRef);
+        if (snapshot.exists()) {
+            const count = snapshot.val();
+            return count < dailyLimit;
+        }
+        return true; // No claims yet today
+    } catch (e) {
+        return false;
+    }
+};
+
+export const grantAdReward = async (userId: number, hours: number): Promise<number> => {
+    if (!db) return 0;
+    const durationMs = hours * 60 * 60 * 1000;
+    const today = new Date().toISOString().split('T')[0];
+    
+    const userAdRef = ref(db, `users/${userId}/ad_claims/${today}`);
+    
+    try {
+        // Increment daily count
+        const snapshot = await get(userAdRef);
+        const currentCount = snapshot.exists() ? snapshot.val() : 0;
+        await set(userAdRef, currentCount + 1);
+
+        // Calculate and return reward duration
+        return durationMs;
+    } catch (e) {
+        console.error("Ad Grant Error", e);
+        return 0;
     }
 };
 

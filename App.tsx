@@ -49,7 +49,7 @@ function App() {
   const [licenseExpiry, setLicenseExpiry] = useState(0);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [ping, setPing] = useState(24);
-  const [isBanned, setIsBanned] = useState(false); // New state for ban status
+  const [isBanned, setIsBanned] = useState(false);
   
   // Game Logic
   const [timeLeft, setTimeLeft] = useState(0);
@@ -425,6 +425,7 @@ function App() {
                     onSuccess={handleLoginSuccess}
                     contactLink={appSettings.contactLink}
                     onOpenSupport={() => setIsSupportOpen(true)}
+                    settings={appSettings}
                 />
                 )}
         </div>
