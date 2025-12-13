@@ -14,154 +14,105 @@
 
     <style>
       :root {
-        --neon-cyan: #00f3ff;
-        --neon-purple: #bc13fe;
-        --neon-red: #ff003c;
-        --neon-gold: #ffd700;
-        --bg-dark: #050505;
-        --glass-border: rgba(255, 255, 255, 0.1);
+        --hack-green: #00ff41;
+        --hack-dim: #008F11;
+        --cyber-blue: #00f3ff;
+        --alert-red: #ff003c;
+        --bg-black: #050505;
+        --panel-bg: rgba(10, 10, 12, 0.85);
       }
       
       body {
-        background-color: var(--bg-dark);
+        background-color: var(--bg-black);
         color: #fff;
         font-family: 'Rajdhani', sans-serif;
         overflow: hidden;
         -webkit-tap-highlight-color: transparent;
       }
+      
       .font-mono { font-family: 'JetBrains Mono', monospace; }
       .font-orbitron { font-family: 'Orbitron', sans-serif; }
-      
-      /* --- CYBERPUNK BACKGROUNDS --- */
-      .bg-cyber-grid {
-        background-image: 
-          linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-        background-size: 30px 30px;
-      }
 
-      /* --- GLITCH EFFECT --- */
-      .glitch-text {
-        position: relative;
-      }
-      .glitch-text::before, .glitch-text::after {
-        content: attr(data-text);
+      /* CRT Scanline Effect */
+      .crt::before {
+        content: " ";
+        display: block;
         position: absolute;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
-        background: var(--bg-dark);
-      }
-      .glitch-text::before {
-        left: 2px;
-        text-shadow: -1px 0 var(--neon-red);
-        clip: rect(24px, 550px, 90px, 0);
-        animation: glitch-anim-2 3s infinite linear alternate-reverse;
-      }
-      .glitch-text::after {
-        left: -2px;
-        text-shadow: -1px 0 var(--neon-cyan);
-        clip: rect(85px, 550px, 140px, 0);
-        animation: glitch-anim 2.5s infinite linear alternate-reverse;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        z-index: 50;
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
       }
 
-      @keyframes glitch-anim {
-        0% { clip: rect(11px, 9999px, 83px, 0); }
-        20% { clip: rect(84px, 9999px, 2px, 0); }
-        40% { clip: rect(24px, 9999px, 80px, 0); }
-        60% { clip: rect(56px, 9999px, 20px, 0); }
-        80% { clip: rect(9px, 9999px, 46px, 0); }
-        100% { clip: rect(66px, 9999px, 33px, 0); }
+      /* Glitch Animation */
+      @keyframes glitch-skew {
+        0% { transform: skew(0deg); }
+        20% { transform: skew(-2deg); }
+        40% { transform: skew(2deg); }
+        60% { transform: skew(-1deg); }
+        80% { transform: skew(1deg); }
+        100% { transform: skew(0deg); }
       }
-      @keyframes glitch-anim-2 {
-        0% { clip: rect(65px, 9999px, 92px, 0); }
-        20% { clip: rect(3px, 9999px, 3px, 0); }
-        40% { clip: rect(45px, 9999px, 63px, 0); }
-        60% { clip: rect(10px, 9999px, 86px, 0); }
-        80% { clip: rect(26px, 9999px, 11px, 0); }
-        100% { clip: rect(88px, 9999px, 5px, 0); }
+      
+      .glitch-effect:hover {
+        animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+        color: var(--hack-green);
+        text-shadow: 2px 0 var(--alert-red), -2px 0 var(--cyber-blue);
       }
 
-      /* --- NEON BORDERS & GLOWS --- */
-      .cyber-card {
-        background: rgba(10, 10, 15, 0.6);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 243, 255, 0.1);
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      /* Hacker Borders */
+      .tech-border {
         position: relative;
-        overflow: hidden;
+        background: var(--panel-bg);
+        border: 1px solid rgba(0, 255, 65, 0.2);
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.05);
+        clip-path: polygon(
+          0 10px, 10px 0, 
+          calc(100% - 10px) 0, 100% 10px, 
+          100% calc(100% - 10px), calc(100% - 10px) 100%, 
+          10px 100%, 0 calc(100% - 10px)
+        );
       }
-      .cyber-card::before {
+      .tech-border::after {
         content: '';
         position: absolute;
-        top: 0; left: 0; right: 0; height: 1px;
-        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        bottom: 0; right: 0;
+        width: 15px; height: 15px;
+        background: linear-gradient(135deg, transparent 50%, var(--hack-green) 50%);
         opacity: 0.5;
       }
-      
-      .cyber-input {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s ease;
+
+      /* Animations */
+      @keyframes pulse-green {
+        0%, 100% { box-shadow: 0 0 5px var(--hack-green), 0 0 10px var(--hack-green) inset; }
+        50% { box-shadow: 0 0 15px var(--hack-green), 0 0 20px var(--hack-green) inset; }
       }
-      .cyber-input:focus {
-        border-color: var(--neon-cyan);
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+      
+      @keyframes scan-vertical {
+        0% { transform: translateY(-100%); opacity: 0; }
+        50% { opacity: 0.5; }
+        100% { transform: translateY(100%); opacity: 0; }
       }
 
-      .btn-cyber {
-        background: linear-gradient(45deg, #0b1c2c, #0f2e44);
-        border: 1px solid var(--neon-cyan);
-        color: var(--neon-cyan);
-        text-shadow: 0 0 5px var(--neon-cyan);
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
-        transition: all 0.2s;
-        position: relative;
-        overflow: hidden;
-      }
-      .btn-cyber:active {
-        transform: scale(0.95);
-      }
-      .btn-cyber::after {
-        content: '';
+      .animate-scan {
         position: absolute;
-        top: -50%; left: -50%; width: 200%; height: 200%;
-        background: linear-gradient(to bottom, transparent, rgba(0,243,255,0.1), transparent);
-        transform: rotate(45deg);
-        animation: shine 3s infinite;
-      }
-      
-      .btn-cyber-gold {
-        background: linear-gradient(45deg, #2c240b, #44380f);
-        border: 1px solid var(--neon-gold);
-        color: var(--neon-gold);
-        text-shadow: 0 0 5px var(--neon-gold);
+        top: 0; left: 0; width: 100%; height: 20%;
+        background: linear-gradient(to bottom, transparent, var(--hack-green), transparent);
+        opacity: 0.1;
+        animation: scan-vertical 3s linear infinite;
+        pointer-events: none;
       }
 
-      @keyframes shine {
-        0% { transform: translateX(-100%) rotate(45deg); }
-        100% { transform: translateX(100%) rotate(45deg); }
-      }
-
-      /* --- ANIMATIONS --- */
-      @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      @keyframes spin-reverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
-      
-      .animate-spin-slow { animation: spin-slow 10s linear infinite; }
-      .animate-spin-reverse { animation: spin-reverse 8s linear infinite; }
-      
-      .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-      .animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
-      @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-      /* --- CUSTOM SCROLLBAR --- */
-      .custom-scrollbar::-webkit-scrollbar { width: 2px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+      /* Custom Scrollbar */
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--hack-dim); border-radius: 2px; }
       .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
+      .text-glow { text-shadow: 0 0 8px currentColor; }
     </style>
   <script type="importmap">
 {
@@ -175,7 +126,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="crt">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

@@ -1,29 +1,35 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const HackSimulation: React.FC = () => {
+    const [code, setCode] = useState("00");
+    
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCode(Math.random().toString(16).substring(2, 4).toUpperCase());
+        }, 50);
+        return () => clearInterval(interval);
+    }, []);
+
     return (
-        <div className="w-full h-full relative flex items-center justify-center">
-            {/* Radar Sweep Effect */}
-            <div className="absolute inset-0 rounded-full border border-cyan-500/30 overflow-hidden bg-black/40">
-                <div className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent rotate-[45deg] animate-[spin_2s_linear_infinite]"></div>
-            </div>
-
-            {/* Target Crosshairs */}
-            <div className="absolute inset-4 border border-dashed border-cyan-400/50 rounded-full animate-[spin_4s_linear_infinite_reverse]"></div>
+        <div className="w-full h-full relative flex flex-col items-center justify-center bg-black/80 rounded-full border-2 border-[#00ff41] overflow-hidden shadow-[0_0_30px_#00ff41]">
             
-            {/* Center Lock Reticle */}
-            <div className="relative z-10 w-16 h-16 flex items-center justify-center">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-full bg-cyan-500/50"></div>
-                <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-0.5 bg-cyan-500/50"></div>
-                <div className="w-10 h-10 border-2 border-red-500 rounded-full animate-ping opacity-75"></div>
-                <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_red]"></div>
+            {/* Spinning Rings */}
+            <div className="absolute inset-0 border-4 border-[#003300] border-t-[#00ff41] rounded-full animate-spin"></div>
+            <div className="absolute inset-2 border-2 border-[#003300] border-b-[#00ff41] rounded-full animate-[spin_1.5s_linear_infinite_reverse]"></div>
+
+            {/* Central Data */}
+            <div className="z-10 flex flex-col items-center">
+                <div className="text-3xl font-mono font-bold text-[#00ff41] animate-pulse">
+                    {code}
+                </div>
+                <div className="text-[8px] text-[#008F11] font-mono tracking-widest mt-1">
+                    DECRYPTING
+                </div>
             </div>
 
-            {/* Scanning Text */}
-            <div className="absolute bottom-6 text-[8px] font-mono text-cyan-400 bg-black/60 px-2 py-0.5 rounded tracking-widest animate-pulse">
-                TARGET_LOCKING...
-            </div>
+            {/* Scanline */}
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-transparent to-[#00ff41]/20 animate-[scan-vertical_1s_linear_infinite]"></div>
         </div>
     );
 };
